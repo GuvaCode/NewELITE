@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units>
+      <Unit>
+        <Filename Value="game.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="RadarShaderExample"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="52"/>
+        <CursorPos X="36" Y="63"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/source/raylib.pas"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/source/raylib.inc"/>
+        <EditorIndex Value="2"/>
+        <CursorPos X="20" Y="13"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="14">
+      <Position>
+        <Filename Value="../../../Проекты/ray4laz/source/raylib.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="16" Column="33"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="55" Column="79" TopLine="5"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="31" Column="7" TopLine="20"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="26" Column="69" TopLine="14"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="20" Column="51" TopLine="10"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="11" Column="34"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="128" Column="5" TopLine="106"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="30" Column="14" TopLine="12"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="4" Column="25"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="75" Column="7" TopLine="67"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="12" Column="44"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="9" Column="24"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="4" Column="25"/>
+      </Position>
+      <Position>
+        <Filename Value="game.lpr"/>
+        <Caret Line="177" Column="23" TopLine="167"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>

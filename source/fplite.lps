@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units>
+      <Unit>
+        <Filename Value="fplite.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <TopLine Value="36"/>
+        <CursorPos X="6" Y="49"/>
+        <UsageCount Value="94"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="screen/screenspace.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ScreenSpace"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="212"/>
+        <CursorPos X="57" Y="216"/>
+        <UsageCount Value="94"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="engine/spaceengine.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="SpaceEngine"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="585"/>
+        <CursorPos X="34" Y="592"/>
+        <UsageCount Value="94"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/source/raylib.pas"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="829"/>
+        <CursorPos X="34" Y="842"/>
+        <UsageCount Value="46"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="engine/collider.pas"/>
+        <UnitName Value="Collider"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="376"/>
+        <CursorPos X="33" Y="381"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/source/raymath.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="63"/>
+        <CursorPos X="31" Y="74"/>
+        <UsageCount Value="18"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/boxes1-main/utils.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/boxes1-main/boxes.lpr"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="12"/>
+        <CursorPos X="20" Y="37"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/boxes1-main/main.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="409"/>
+        <CursorPos X="33" Y="426"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="engine/kraft.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="32332"/>
+        <CursorPos Y="32341"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/FalseElite-main/source/engine/collider.pas"/>
+        <UnitName Value="Collider"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="33"/>
+        <CursorPos X="22" Y="33"/>
+        <UsageCount Value="8"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/source/extras/r3d.pas"/>
+        <EditorIndex Value="9"/>
+        <TopLine Value="2155"/>
+        <CursorPos X="11" Y="2157"/>
+        <UsageCount Value="39"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="extra/digestmath.pas"/>
+        <UnitName Value="DigestMath"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="64"/>
+        <CursorPos X="3" Y="86"/>
+        <UsageCount Value="20"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/source/raylib.inc"/>
+        <EditorIndex Value="4"/>
+        <CursorPos X="7" Y="5"/>
+        <UsageCount Value="39"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/examples/extras/r3d_lib/basic/basic.lpr"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="82"/>
+        <CursorPos X="10" Y="92"/>
+        <UsageCount Value="14"/>
+      </Unit>
+      <Unit>
+        <Filename Value="engine/screenmanager.pas"/>
+        <UnitName Value="ScreenManager"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="344"/>
+        <CursorPos X="36" Y="63"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/examples/extras/r3d_lib/sponza/r3d_sponza.lpr"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="10"/>
+        <CursorPos Y="23"/>
+        <UsageCount Value="12"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/examples/extras/r3d_lib/pbr_car/r3d_car.lpr"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="47"/>
+        <CursorPos X="54" Y="52"/>
+        <UsageCount Value="16"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/source/rlgl.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="481"/>
+        <CursorPos X="16" Y="488"/>
+        <UsageCount Value="8"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/examples/extras/r3d_lib/particles/r3d_particles.lpr"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="32"/>
+        <CursorPos Y="39"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/examples/extras/r3d_lib/instanced/r3d_instanced.lpr"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="69"/>
+        <CursorPos X="91" Y="91"/>
+        <UsageCount Value="21"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/examples/extras/r3d_lib/bloom/r3d_bloom.lpr"/>
+        <UnitName Value="BloomExample"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="66"/>
+        <CursorPos X="39" Y="82"/>
+        <UsageCount Value="14"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/examples/extras/r3d_lib/skybox/r3d_skybox.lpr"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2"/>
+        <CursorPos X="32" Y="24"/>
+        <UsageCount Value="13"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/FalseElite-main/source/engine/spaceengine.pas"/>
+        <UnitName Value="SpaceEngine"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="280"/>
+        <CursorPos Y="283"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/fpcsrc/3.2.2/rtl/inc/objpash.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="195"/>
+        <CursorPos X="14" Y="202"/>
+        <UsageCount Value="17"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/fpcsrc/3.2.2/rtl/inc/objpas.inc"/>
+        <EditorIndex Value="8"/>
+        <TopLine Value="325"/>
+        <CursorPos X="9" Y="325"/>
+        <UsageCount Value="18"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/examples/extras/r3d_lib/transparency/r3d_transparency.lpr"/>
+        <EditorIndex Value="7"/>
+        <TopLine Value="20"/>
+        <CursorPos Y="30"/>
+        <UsageCount Value="14"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/examples/extras/r3d_lib/sprite_instanced/sprite_instanced.lpr"/>
+        <EditorIndex Value="6"/>
+        <TopLine Value="80"/>
+        <CursorPos X="19" Y="90"/>
+        <UsageCount Value="14"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/examples/extras/r3d_lib/sprite/r3d_sprite.lpr"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="62"/>
+        <CursorPos X="89" Y="81"/>
+        <UsageCount Value="14"/>
+        <Loaded Value="True"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="29">
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="680" Column="60" TopLine="679"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="688" Column="75" TopLine="679"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="12" Column="28"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="689" Column="67" TopLine="682"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="680" Column="40" TopLine="677"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="97" Column="25" TopLine="88"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="12" Column="21"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="689" Column="66" TopLine="678"/>
+      </Position>
+      <Position>
+        <Filename Value="../../../Проекты/ray4laz/source/extras/r3d.pas"/>
+        <Caret Line="2305" Column="10" TopLine="2294"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="693" Column="3" TopLine="677"/>
+      </Position>
+      <Position>
+        <Filename Value="../../../Проекты/ray4laz/source/extras/r3d.pas"/>
+        <Caret Line="2305" Column="10" TopLine="2294"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="689" Column="19" TopLine="677"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="708" Column="8" TopLine="674"/>
+      </Position>
+      <Position>
+        <Filename Value="../../../Проекты/ray4laz/source/extras/r3d.pas"/>
+        <Caret Line="1828" Column="28" TopLine="1808"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="98" Column="107" TopLine="88"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="694" Column="8" TopLine="680"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="693" Column="61" TopLine="680"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="694" Column="23" TopLine="641"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="87" Column="23" TopLine="84"/>
+      </Position>
+      <Position>
+        <Filename Value="screen/screenspace.pas"/>
+        <Caret Line="92" Column="56" TopLine="87"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="97" Column="15" TopLine="87"/>
+      </Position>
+      <Position>
+        <Filename Value="screen/screenspace.pas"/>
+        <Caret Line="92" Column="23" TopLine="87"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="97" Column="25" TopLine="88"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="694" Column="28" TopLine="677"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="88" Column="23" TopLine="81"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="532" Column="17" TopLine="524"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="81" Column="5" TopLine="69"/>
+      </Position>
+      <Position>
+        <Filename Value="engine/spaceengine.pas"/>
+        <Caret Line="532" TopLine="522"/>
+      </Position>
+      <Position>
+        <Filename Value="screen/screenspace.pas"/>
+        <Caret Line="93" Column="51" TopLine="78"/>
+      </Position>
+      <Position>
+        <Filename Value="fplite.lpr"/>
+        <Caret Line="51" Column="5" TopLine="36"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>

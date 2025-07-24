@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units>
+      <Unit>
+        <Filename Value="project1.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="SkyboxGenerator"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="39"/>
+        <CursorPos X="28" Y="71"/>
+        <UsageCount Value="30"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="proceduralskybox.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ProceduralSkybox"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="225"/>
+        <CursorPos X="22" Y="245"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/source/raylib.pas"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="15"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Проекты/ray4laz/source/raylib.inc"/>
+        <EditorIndex Value="3"/>
+        <CursorPos X="6" Y="5"/>
+        <UsageCount Value="15"/>
+        <Loaded Value="True"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="29">
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="99" Column="29" TopLine="91"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="108" Column="39" TopLine="90"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="179" Column="5" TopLine="157"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="174" Column="49"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="168" Column="5" TopLine="146"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="91" Column="62"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="157" Column="29" TopLine="147"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Column="22"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="4" Column="27"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="37" Column="72" TopLine="20"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="30" Column="16" TopLine="26"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="337" Column="5" TopLine="315"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="8" Column="49"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="210" Column="16" TopLine="199"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="88" Column="17" TopLine="76"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="210" Column="27"/>
+      </Position>
+      <Position>
+        <Filename Value="../../../Проекты/ray4laz/source/raylib.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="210" Column="22" TopLine="199"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="231" Column="22" TopLine="220"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="240" Column="25" TopLine="229"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="210" Column="22" TopLine="200"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="231" Column="31" TopLine="220"/>
+      </Position>
+      <Position>
+        <Filename Value="proceduralskybox.pas"/>
+        <Caret Line="245" Column="28" TopLine="229"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="27" Column="46" TopLine="16"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="64" Column="30" TopLine="49"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="79" TopLine="64"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="13" Column="5" TopLine="2"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="84" Column="31" TopLine="72"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="78" TopLine="73"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="13" Column="5" TopLine="2"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>
