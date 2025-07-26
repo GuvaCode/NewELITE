@@ -31,7 +31,7 @@ type
 { TRayApplication }
 
 constructor TRayApplication.Create(TheOwner: TComponent);
-var light: TR3D_Light;
+//var light: TR3D_Light;
 begin
   inherited Create(TheOwner);
 
@@ -46,16 +46,16 @@ begin
     R3D_SetSSAORadius(2.0);
     R3D_SetBloomIntensity(0.1);
     R3D_SetBloomMode(R3D_BLOOM_MIX);
-    R3D_SetTonemapMode(R3D_TONEMAP_ACES);
+   // R3D_SetTonemapMode(R3D_TONEMAP_ACES);
     R3D_SetModelImportScale(0.01);
 
 
-  light := R3D_CreateLight(R3D_LIGHT_DIR);
+  //light := R3D_CreateLight(R3D_LIGHT_DIR);
 
-  R3D_LightLookAt(light, Vector3Create( 0, 10, 5 ), Vector3Create(0,0,0));
+  //R3D_LightLookAt(light, Vector3Create( 0, 10, 5 ), Vector3Create(0,0,0));
 
-  R3D_SetLightActive(light, true);
-  R3D_EnableShadow(light, 4096);
+  //R3D_SetLightActive(light, true);
+  //R3D_EnableShadow(light, 4096);
 
   FScreenManager := TScreenManager.Create;
   //FScreenManager.Add(Tgamescreen_mainmenu, SCREEN_MAINMENU);

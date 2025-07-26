@@ -1,7 +1,7 @@
 unit ScreenSpace;
 
 {$mode ObjFPC}{$H+}
-{$define DEBUG}
+{.$define DEBUG}
 
 
 interface
@@ -20,7 +20,7 @@ type
     ShipModel, ShipModel2: TR3D_Model;
 
     Camera: TSpaceCamera;
-    procedure ApplyInputToShip(Ship_: TSpaceActor; step: Single);
+
   public
     procedure Init; override; // Init game screen
     procedure Shutdown; override; // Shutdown the game screen
@@ -34,55 +34,7 @@ implementation
 
 { TScreenSpace }
 
-procedure TScreenSpace.ApplyInputToShip(Ship_: TSpaceActor; step: Single);
-var triggerRight, triggerLeft: Single;
-begin
-  ship.InputForward := 0;
-  if (IsKeyDown(KEY_W)) then ship.InputForward += step;
-  if (IsKeyDown(KEY_S)) then ship.InputForward -= step;
 
-  ship.InputForward -= GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
-  ship.InputForward := Clamp(ship.InputForward, -step, step);
-
-  ship.InputLeft := 0;
-  if (IsKeyDown(KEY_D)) then ship.InputLeft -= step;
-  if (IsKeyDown(KEY_A)) then ship.InputLeft += step;
-
-  ship.InputLeft -= GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
-  ship.InputLeft := Clamp(ship.InputLeft, -step, step);
-
-  ship.InputUp := 0;
-  if (IsKeyDown(KEY_SPACE)) then ship.InputUp += step;
-  if (IsKeyDown(KEY_LEFT_CONTROL)) then ship.InputUp -= step;
-
-  triggerRight := GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_TRIGGER);
-  triggerRight := Remap(triggerRight, -step, step, 0, step);
-
-  triggerLeft := GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_TRIGGER);
-  triggerLeft := Remap(triggerLeft, -step, step, 0, step);
-
-  ship.InputUp += triggerRight;
-  ship.InputUp -= triggerLeft;
-  ship.InputUp := Clamp(ship.InputUp, -step, step);
-
-  ship.InputYawLeft := 0;
-  if (IsKeyDown(KEY_RIGHT)) then ship.InputYawLeft -= step;
-  if (IsKeyDown(KEY_LEFT)) then ship.InputYawLeft += step;
-
-  ship.InputYawLeft -= GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_X);
-  ship.InputYawLeft := Clamp(ship.InputYawLeft, -step, step);
-
-  ship.InputPitchDown := 0;
-  if (IsKeyDown(KEY_UP)) then ship.InputPitchDown += step;
-  if (IsKeyDown(KEY_DOWN)) then ship.InputPitchDown -= step;
-
-  ship.InputPitchDown += GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_Y);
-  ship.InputPitchDown := Clamp(ship.InputPitchDown, -step, step);
-
-  ship.InputRollRight := 0;
-  if (IsKeyDown(KEY_Q)) then ship.InputRollRight -= step;
-  if (IsKeyDown(KEY_E)) then ship.InputRollRight += step;
-end;
 
 procedure TScreenSpace.Init;
 
@@ -90,12 +42,15 @@ begin
   Engine := TSpaceEngine.Create;
   Engine.CrosshairFar.Create('data' + '/models/UI/crosshair2.gltf');
   Engine.CrosshairNear.Create('data' + '/models/UI/crosshair.gltf');
-  Engine.LoadSkyBox('HDR_subdued_multi_nebulae.hdr', SQHigh, STPanorama);
+  Engine.LoadSkyBox('HDR_marslike_planet_close.hdr', SQHigh, STPanorama);
   Engine.EnableSkybox;
+  Engine.Light[0] := R3D_CreateLight(R3D_LIGHT_DIR);
+
+  R3D_LightLookAt(Engine.Light[0], Vector3Create( 0, 10, 5 ), Vector3Create(0,0,0));
+  R3D_SetLightActive(Engine.Light[0], true);
+  R3D_EnableShadow(Engine.Light[0], 4096);
 
 
-  //Engine.GenerateSkyBox(1024, ColorCreate(32, 32, 64, 255), 2048);
- // Engine.CrosshairFar.FCrosshairModel := R3D_LoadModel(('data' + '/models/untitled.glb')); ;
 
   Camera := TSpaceCamera.Create(True, 50);
   R3D_SetModelImportScale(0.05);
@@ -140,9 +95,11 @@ begin
   Engine.Radar.Range:=500;
  }
 
-  Engine.Radar.Range := 100;
-  Engine.Radar.BackgroundColor := ColorCreate(0, 0, 50, 200);
+ // Engine.Radar.Range := 100;
+ // Engine.Radar.BackgroundColor := ColorCreate(0, 0, 50, 200);
   Engine.Radar.Player := Ship;
+
+
 
  // Engine.CrosshairFar.ApplyBlend;
 
@@ -207,13 +164,12 @@ begin
   Engine.ClearDeadActor;
   Engine.Collision;
 
-  ApplyInputToShip(Ship, 1);
-
-
+  Engine.ApplyInputToShip(Ship, 1);
 
   Camera.FollowActor(Ship, MoveCount);
+
   Engine.CrosshairFar.PositionCrosshairOnActor(Ship, 20);
-  Engine.CrosshairNear.PositionCrosshairOnActor(Ship, 10);
+  Engine.CrosshairNear.PositionCrosshairOnActor(Ship, 15);
 end;
 
 procedure TScreenSpace.Render;

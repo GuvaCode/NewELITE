@@ -5,7 +5,7 @@ unit SpaceEngine;
 interface
 
 uses
-  RayLib, RayMath, RlGl, Math, DigestMath, Collider, Classes, SysUtils, r3d;
+  raylib, raymath, rlgl, Math, DigestMath, Collider, Classes, SysUtils, r3d;
 
 type
   TSkyBoxQuality = (SQLow = 512, SQNormal = 1024, SQHigh = 2048, SQVeryHigh = 4096);
@@ -76,12 +76,14 @@ type
   private
     FActorList: TList;
     FDeadActorList: TList;
+    FLight: array[0..3] of TR3D_Light;
     FSpaceDust: TSpaceDust;
     FSkyBox: TR3D_Skybox;
-
     FRadar: TRadar;
     function GetCount: Integer;
+    function GetLight(const Index: Integer): TR3D_Light;
     function GetModelActor(const Index: Integer): TSpaceActor;
+    procedure SetLight(const Index: Integer; AValue: TR3D_Light);
   public
     CrosshairNear, CrosshairFar: TSpaceCrosshair;
     constructor Create;
@@ -98,7 +100,10 @@ type
     procedure LoadSkyBoxFromMemory(SkyBoxImage: TImage; Quality: TSkyBoxQuality; SkyBoxType: TSkyBoxType);
     procedure EnableSkybox;
     procedure DisableSkybox;
+    procedure ApplyInputToShip(Ship: TSpaceActor; Step: Single);
+
     property Items[const Index: Integer]: TSpaceActor read GetModelActor; default;
+    property Light[const Index: Integer]: TR3D_Light read GetLight write SetLight;
     property Count: Integer read GetCount;
 
 
@@ -116,6 +121,7 @@ type
     FMaxSpeed: Single;
     FModel: TR3D_Model;
     FModelTransform: TMatrix;
+    FProjection: TVector4;
     FSmoothForward: Single;
     FSmoothLeft: Single;
     FSmoothUp: Single;
@@ -167,8 +173,9 @@ type
     procedure Update(const DeltaTime: Single); virtual;
     procedure Render; virtual;
 
-    procedure DrawTrail;
 
+
+    procedure DrawTrail;
 
     function GetForward:TVector3;
     function GetForward(Distance: Single): TVector3;
@@ -199,6 +206,8 @@ type
 
     property Engine: TSpaceEngine read FEngine write FEngine;
     property Position: TVector3 read FPosition write SetPosition;
+    property Projection: TVector4 read FProjection write FProjection;
+
     property Rotation: TQuaternion read FRotation write FRotation;
     property Velocity: TVector3 read FVelocity write FVelocity;
 
@@ -221,54 +230,39 @@ type
   end;
 
   { TRadar }
-
   TRadar = class
   private
-    FPosition: TVector2;
-    //FSize: Single;
-    FRange: Single;
-    FPlayer: TSpaceActor;
     FEngine: TSpaceEngine;
-    FBackgroundColor: TColorB;
-    FForegroundColor: TColorB;
-    FDefaultBlipColor: TColorB;
-    FHostileBlipColor: TColorB;
-    FFriendlyBlipColor: TColorB;
-
-    // Новые поля для стиля Everspace 2
-    FScreenMargin: Integer;
-    FEdgeMarkerSize: Integer;
-    FViewAngle: Single;
+    FPlayer: TSpaceActor;
     FMaxRange: Single;
-    FHostileColor: TColorB;
-    FFriendlyColor: TColorB;
-    FNeutralColor: TColorB;
-    FObjectiveColor: TColorB;
+    FRadarSize: Integer;
+    FRadarPos: TVector2;
+    FShowLabels: Boolean;
+    FLabelVisibilityRange: Single;
+    FLabelSize: Integer;
+    FFontSize: Integer;
+    FMarkerColor: TColorB;
+    FEdgeMarkerColor: TColorB;
 
-    procedure SetPlayer(AValue: TSpaceActor);
+    procedure DrawRadarCircle;
+    procedure DrawWorldMarkers(Camera: TSpaceCamera; modelPos: TVector3; distance: Single; color: TColorB);
+    function GetObjectColor(Tag: Integer): TColorB;
   public
     constructor Create(AEngine: TSpaceEngine);
     procedure Draw(Camera: TSpaceCamera);
-    property Position: TVector2 read FPosition write FPosition;
- //   property Size: Single read FSize write FSize;
-    property Range: Single read FRange write FRange;
-    property Player: TSpaceActor read FPlayer write SetPlayer;
-    property BackgroundColor: TColorB read FBackgroundColor write FBackgroundColor;
-    property ForegroundColor: TColorB read FForegroundColor write FForegroundColor;
-    property DefaultBlipColor: TColorB read FDefaultBlipColor write FDefaultBlipColor;
-    property HostileBlipColor: TColorB read FHostileBlipColor write FHostileBlipColor;
-    property FriendlyBlipColor: TColorB read FFriendlyBlipColor write FFriendlyBlipColor;
+    procedure SetPlayer(AValue: TSpaceActor);
 
-    // Новые свойства для стиля Everspace 2
-    property ScreenMargin: Integer read FScreenMargin write FScreenMargin;
-    property EdgeMarkerSize: Integer read FEdgeMarkerSize write FEdgeMarkerSize;
-    property ViewAngle: Single read FViewAngle write FViewAngle;
+    property Player: TSpaceActor read FPlayer write SetPlayer;
     property MaxRange: Single read FMaxRange write FMaxRange;
-    property HostileColor: TColorB read FHostileColor write FHostileColor;
-    property FriendlyColor: TColorB read FFriendlyColor write FFriendlyColor;
-    property NeutralColor: TColorB read FNeutralColor write FNeutralColor;
-    property ObjectiveColor: TColorB read FObjectiveColor write FObjectiveColor;
+    property RadarSize: Integer read FRadarSize write FRadarSize;
+    property ShowLabels: Boolean read FShowLabels write FShowLabels;
+    property LabelVisibilityRange: Single read FLabelVisibilityRange write FLabelVisibilityRange;
+    property LabelSize: Integer read FLabelSize write FLabelSize;
+    property FontSize: Integer read FFontSize write FFontSize;
+    property MarkerColor: TColorB read FMarkerColor write FMarkerColor;
+    property EdgeMarkerColor: TColorB read FEdgeMarkerColor write FEdgeMarkerColor;
   end;
+
 
 implementation
 
@@ -479,12 +473,24 @@ begin
   else Result := 0;
 end;
 
+function TSpaceEngine.GetLight(const Index: Integer): TR3D_Light;
+begin
+  if (Index >= 0) and (Index <= 3) then
+  result := FLight[Index];
+end;
+
 function TSpaceEngine.GetModelActor(const Index: Integer): TSpaceActor;
 begin
   if (FActorList <> nil) and (Index >= 0) and (Index < FActorList.Count) then
     Result := TSpaceActor(FActorList[Index])
   else
     Result := nil;
+end;
+
+procedure TSpaceEngine.SetLight(const Index: Integer; AValue: TR3D_Light);
+begin
+  if (Index >= 0) and (Index <= 3) then
+  FLight[Index] := AValue;
 end;
 
 constructor TSpaceEngine.Create;
@@ -494,25 +500,8 @@ begin
   FSpaceDust := TSpaceDust.Create(50, 500);
   CrosshairNear := TSpaceCrosshair.Create(nil);
   CrosshairFar := TSpaceCrosshair.Create(nil);
+  FRadar := TRadar.Create(Self); // PlayerActor будет установлен позже
 
-  // Initialize R3D with default settings
-
-
-  // Set default texture filtering
- // R3D_SetTextureFilter(TEXTURE_FILTER_BILINEAR);
-
-  // Create skybox
-  //FSkyBoxQuality := SBQOriginal;
-  //FUsesSkyBox := false;
- //FSkyBox := R3D_LoadSkybox('cubemap.png', CUBEMAP_LAYOUT_AUTO_DETECT);
-
- // img := LoadImage('test.png');
-//  FSkyBox := R3D_LoadSkyboxPanorama('HDR_silver_and_gold_nebulae.hdr', 2048*2);
- // GenerateSkyBox(2048, Red, 256);
-//  R3D_EnableSkybox(FSkyBox);
-
- FRadar := TRadar.Create(Self);
- //.. FRadar := TRadar.Create(Self); // PlayerActor будет установлен позже
 end;
 
 destructor TSpaceEngine.Destroy;
@@ -697,6 +686,56 @@ begin
   R3D_DisableSkybox;
 end;
 
+procedure TSpaceEngine.ApplyInputToShip(Ship: TSpaceActor; Step: Single);
+var triggerRight, triggerLeft: Single;
+begin
+  Ship.InputForward := 0;
+  if (IsKeyDown(KEY_W)) then Ship.InputForward += Step;
+  if (IsKeyDown(KEY_S)) then Ship.InputForward -= Step;
+
+  Ship.InputForward -= GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
+  Ship.InputForward := Clamp(Ship.InputForward, -Step, Step);
+
+  Ship.InputLeft := 0;
+  if (IsKeyDown(KEY_D)) then Ship.InputLeft -= Step;
+  if (IsKeyDown(KEY_A)) then Ship.InputLeft += Step;
+
+  Ship.InputLeft -= GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
+  Ship.InputLeft := Clamp(Ship.InputLeft, -Step, Step);
+
+  Ship.InputUp := 0;
+  if (IsKeyDown(KEY_SPACE)) then Ship.InputUp += Step;
+  if (IsKeyDown(KEY_LEFT_CONTROL)) then Ship.InputUp -= Step;
+
+  triggerRight := GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_TRIGGER);
+  triggerRight := Remap(triggerRight, -Step, Step, 0, Step);
+
+  triggerLeft := GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_TRIGGER);
+  triggerLeft := Remap(triggerLeft, -Step, Step, 0, Step);
+
+  Ship.InputUp += triggerRight;
+  Ship.InputUp -= triggerLeft;
+  Ship.InputUp := Clamp(Ship.InputUp, -Step, Step);
+
+  Ship.InputYawLeft := 0;
+  if (IsKeyDown(KEY_RIGHT)) then Ship.InputYawLeft -= Step;
+  if (IsKeyDown(KEY_LEFT)) then Ship.InputYawLeft += Step;
+
+  Ship.InputYawLeft -= GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_X);
+  Ship.InputYawLeft := Clamp(Ship.InputYawLeft, -Step, Step);
+
+  Ship.InputPitchDown := 0;
+  if (IsKeyDown(KEY_UP)) then Ship.InputPitchDown += Step;
+  if (IsKeyDown(KEY_DOWN)) then Ship.InputPitchDown -= Step;
+
+  Ship.InputPitchDown += GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_Y);
+  Ship.InputPitchDown := Clamp(Ship.InputPitchDown, -Step, Step);
+
+  Ship.InputRollRight := 0;
+  if (IsKeyDown(KEY_Q)) then Ship.InputRollRight -= Step;
+  if (IsKeyDown(KEY_E)) then Ship.InputRollRight += Step;
+end;
+
 
 
 { TSpaceActor }
@@ -719,7 +758,6 @@ begin
 
   SetColliderRotation(@FCollider, FVisualRotation);
   SetColliderTranslation(@FCollider, FPosition);
-//  FModel.transform := GetColliderTransform(@FCollider);
 end;
 
 procedure TSpaceActor.SetPosition(AValue: TVector3);
@@ -782,7 +820,7 @@ begin
 
   // Unload model if assigned
   if @FModel <> nil then
-    R3D_UnloadModel(@FModel, True);
+  R3D_UnloadModel(@FModel, True);
 
   inherited Destroy;
 end;
@@ -1090,6 +1128,277 @@ constructor TRadar.Create(AEngine: TSpaceEngine);
 begin
   FEngine := AEngine;
   FPlayer := nil;
+  FMaxRange := 200;
+  FRadarSize := 120;
+  FRadarPos := Vector2Create(0, 0);
+  FShowLabels := True;
+  FLabelVisibilityRange := 0.7;
+  FLabelSize := 15;
+  FFontSize := 10;
+  FMarkerColor := YELLOW;
+  FEdgeMarkerColor := ColorCreate(255, 165, 0, 255); // Оранжевый
+end;
+
+procedure TRadar.SetPlayer(AValue: TSpaceActor);
+begin
+  if FPlayer = AValue then Exit;
+  FPlayer := AValue;
+end;
+
+procedure TRadar.DrawRadarCircle;
+var
+  radarCenter: TVector2;
+  margin: Integer;
+begin
+  margin := 20;
+  radarCenter.x := GetScreenWidth - FRadarSize div 2 - margin;
+  radarCenter.y := GetScreenHeight - FRadarSize div 2 - margin;
+
+  // Фон радара
+  DrawCircle(Round(radarCenter.x), Round(radarCenter.y), FRadarSize div 2,
+    ColorCreate(0, 0, 32, 180));
+
+  // Обводка радара
+//  DrawCircleLines(Round(radarCenter.x), Round(radarCenter.y), FRadarSize div 2,
+//    ColorCreate(0, 200, 255, 200));
+
+  // Центральное перекрестие
+  {DrawLineEx(
+    Vector2Create(radarCenter.x - 4, radarCenter.y),
+    Vector2Create(radarCenter.x + 4, radarCenter.y),
+    1, DARKGREEN);
+  DrawLineEx(
+    Vector2Create(radarCenter.x, radarCenter.y - 4),
+    Vector2Create(radarCenter.x, radarCenter.y + 4),
+    1, DARKGREEN);
+    }
+  DrawCircle(Round(radarCenter.x), Round(radarCenter.y), 6,
+    DARKGREEN);
+  // Маркер игрока
+  //DrawCircle(Round(radarCenter.x), Round(radarCenter.y), 6, GREEN);
+  //DrawText('YOU', Round(radarCenter.x - 15), Round(radarCenter.y + 10), 10, GREEN);
+end;
+
+function TRadar.GetObjectColor(Tag: Integer): TColorB;
+begin
+  case Tag of
+    1: Result := RED;     // Враги
+    2: Result := GREEN;   // Союзники
+    3: Result := BLUE;    // Дружественные
+    4: Result := YELLOW;  // Цели
+    else Result := FMarkerColor;
+  end;
+end;
+
+
+function GetCameraForward(camera: TCamera3D): TVector3;
+begin
+  Result := Vector3Normalize(Vector3Subtract(camera.target, camera.position));
+end;
+
+function GetCameraRight(camera: TCamera3D): TVector3;
+begin
+  Result := Vector3Normalize(Vector3CrossProduct(GetCameraForward(camera), camera.up));
+end;
+
+function GetCameraUp(camera: TCamera3D): TVector3;
+begin
+  Result := camera.up;
+end;
+
+procedure TRadar.DrawWorldMarkers(Camera: TSpaceCamera; modelPos: TVector3; distance: Single; color: TColorB);
+var
+  screenPos, edgePos: TVector2;
+  viewport: TRectangle;
+  direction: TVector2;
+  screenCenter: TVector2;
+  angle: Single;
+  distanceText: string;
+  textWidth: Integer;
+  markerSize: Integer;
+  isOffScreen: Boolean;
+  behindCamera: Boolean;
+  viewVector: TVector3;
+  fakePos: TVector3;
+  const FakeDistance = 10.0;
+begin
+  viewport := RectangleCreate(0, 0, GetScreenWidth, GetScreenHeight);
+  screenCenter := Vector2Create(viewport.width/2, viewport.height/2);
+
+  // Проверяем, находится ли объект позади камеры
+  viewVector := Vector3Subtract(modelPos, Camera.Camera.position);
+  behindCamera := Vector3DotProduct(viewVector, GetCameraForward(Camera.Camera)) < 0;
+
+  if behindCamera then
+  begin
+    // Создаем виртуальную позицию перед камерой
+
+    fakePos := Vector3Add(Camera.Camera.position,
+              Vector3Scale(GetCameraForward(Camera.Camera), FakeDistance));
+    fakePos := Vector3Add(fakePos,
+              Vector3Scale(GetCameraRight(Camera.Camera),
+              Vector3DotProduct(viewVector, GetCameraRight(Camera.Camera))));
+    fakePos := Vector3Add(fakePos,
+              Vector3Scale(GetCameraUp(Camera.Camera),
+              Vector3DotProduct(viewVector, GetCameraUp(Camera.Camera))));
+
+    screenPos := GetWorldToScreen(fakePos, Camera.Camera);
+    isOffScreen := True;
+  end
+  else
+  begin
+    screenPos := GetWorldToScreen(modelPos, Camera.Camera);
+    isOffScreen := not CheckCollisionPointRec(screenPos, viewport);
+  end;
+
+  if isOffScreen then
+  begin
+    // Вычисляем направление от центра экрана к объекту
+    direction := Vector2Normalize(Vector2Subtract(screenPos, screenCenter));
+
+    // Находим точку пересечения с границей экрана
+    angle := ArcTan2(direction.y, direction.x);
+
+    // Корректируем позицию маркера у края экрана
+    edgePos.x := screenCenter.x + (Cos(angle) * (viewport.width/2 - 20));
+    edgePos.y := screenCenter.y + (Sin(angle) * (viewport.height/2 - 20));
+
+    // Рисуем специальный маркер для объектов позади
+    if behindCamera then
+    begin
+      // Маркер в виде круга с точкой
+      DrawCircleLines(Round(edgePos.x), Round(edgePos.y), 8, color);
+      DrawCircle(Round(edgePos.x), Round(edgePos.y), 3, color);
+    end
+    else
+    begin
+      // Обычный маркер у края экрана (треугольник)
+      markerSize := 10;
+      DrawTriangle(
+        Vector2Create(edgePos.x + Cos(angle) * markerSize,
+                     edgePos.y + Sin(angle) * markerSize),
+        Vector2Create(edgePos.x + Cos(angle + Pi*0.8) * markerSize,
+                     edgePos.y + Sin(angle + Pi*0.8) * markerSize),
+        Vector2Create(edgePos.x + Cos(angle - Pi*0.8) * markerSize,
+                     edgePos.y + Sin(angle - Pi*0.8) * markerSize),
+        color);
+    end;
+
+    // Текст с дистанцией
+    distanceText := Format('%.0fm', [distance]);
+    textWidth := MeasureText(PChar(distanceText), FFontSize);
+
+    // Позиционируем текст с учетом угла
+    DrawText(PChar(distanceText),
+      Round(edgePos.x + Cos(angle) * 15 - textWidth/2),
+      Round(edgePos.y + Sin(angle) * 15 - FFontSize/2),
+      FFontSize, WHITE);
+  end
+  else
+  begin
+    // Обычный маркер над видимым объектом
+    markerSize := Round(FLabelSize * (1 - Min(distance / FMaxRange, 1.0)));
+    markerSize := Trunc(Clamp(markerSize, 8, FLabelSize));
+
+    DrawTriangle(
+      Vector2Create(screenPos.x, screenPos.y - markerSize),
+      Vector2Create(screenPos.x - markerSize/2, screenPos.y - markerSize/2),
+      Vector2Create(screenPos.x + markerSize/2, screenPos.y - markerSize/2),
+      color);
+
+    // Соединительная линия
+    DrawLineEx(
+      Vector2Create(screenPos.x, screenPos.y - markerSize/2),
+      Vector2Create(screenPos.x, screenPos.y),
+      1, color);
+
+    // Текст с дистанцией
+    distanceText := Format('%.0fm', [distance]);
+    textWidth := MeasureText(PChar(distanceText), FFontSize);
+    DrawText(PChar(distanceText),
+      Round(screenPos.x - textWidth/2),
+      Round(screenPos.y - markerSize - FFontSize - 2),
+      FFontSize, color);
+  end;
+end;
+
+procedure TRadar.Draw(Camera: TSpaceCamera);
+var
+  i: Integer;
+  modelPos: TVector3;
+  relativePos: TVector3;
+  distance, normalizedDist: Single;
+  radarPos: TVector2;
+  angle: Single;
+  color: TColorB;
+  radarCenter: TVector2;
+begin
+  if (FPlayer = nil) or (FEngine = nil) then Exit;
+
+
+
+
+
+     // R3D_DrawModelPro(@FCrosshairModel, crosshairTransform);
+
+
+  // Отрисовка круга радара
+  BeginBlendMode(BLEND_ADDITIVE);
+    //rlDisableDepthTest();
+      DrawRadarCircle;
+   // rlEnableDepthTest();
+  EndBlendMode();
+
+  radarCenter.x := GetScreenWidth - FRadarSize div 2 - 20;
+  radarCenter.y := GetScreenHeight - FRadarSize div 2 - 20;
+
+  for i := 0 to FEngine.FActorList.Count - 1 do
+  begin
+    if TSpaceActor(FEngine.FActorList.Items[i]) = FPlayer then Continue;
+
+    modelPos := TSpaceActor(FEngine.FActorList.Items[i]).Position;
+    relativePos := Vector3Subtract(FPlayer.Position, modelPos);
+    distance := Vector3Length(relativePos);
+
+    if distance > FMaxRange then Continue;
+
+    color := GetObjectColor(TSpaceActor(FEngine.FActorList.Items[i]).Tag);
+
+    // Отрисовка на радаре
+    normalizedDist := Min(distance / FMaxRange, 1.0);
+    angle := ArcTan2(relativePos.x, relativePos.z);
+    radarPos.x := radarCenter.x + Sin(angle) * (FRadarSize div 2) * normalizedDist;
+    radarPos.y := radarCenter.y - Cos(angle) * (FRadarSize div 2) * normalizedDist;
+
+    BeginBlendMode(BLEND_ADDITIVE);
+     // rlDisableDepthTest();
+            DrawCircle(Round(radarPos.x), Round(radarPos.y),
+      Max(2, Round(4 * (1 - normalizedDist))), color);
+    //  rlEnableDepthTest();
+    EndBlendMode();
+
+
+
+
+
+    // Отрисовка меток в мире
+    if FShowLabels and (distance < FMaxRange * FLabelVisibilityRange) then
+    begin
+
+      DrawWorldMarkers(Camera, modelPos, distance, color);
+
+    end;
+  end;
+
+end;
+
+
+
+{
+constructor TRadar.Create(AEngine: TSpaceEngine);
+begin
+  FEngine := AEngine;
+  FPlayer := nil;
   FPosition := Vector2Create(20, 20);
  // FSize := 180;
   FRange := 1000;
@@ -1100,7 +1409,7 @@ begin
   FFriendlyBlipColor := ColorCreate(50, 255, 50, 220);
 
   // Инициализация новых полей для стиля Everspace 2
-  FScreenMargin := 1;
+  FScreenMargin := 0;
   FEdgeMarkerSize := 20;
   FViewAngle := 60 * DEG2RAD;
   FMaxRange := 2000;
@@ -1226,7 +1535,14 @@ begin
      // end;
     end;
   end;
+
+
+
+
+
 end;
+ }
+
 
 
 
