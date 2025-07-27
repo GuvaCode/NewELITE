@@ -50,8 +50,6 @@ begin
   R3D_SetLightActive(Engine.Light[0], true);
   R3D_EnableShadow(Engine.Light[0], 4096);
 
-
-
   Camera := TSpaceCamera.Create(True, 50);
   R3D_SetModelImportScale(0.05);
 

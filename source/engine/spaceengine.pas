@@ -236,6 +236,7 @@ type
     FPlayer: TSpaceActor;
     FMaxRange: Single;
     FRadarSize: Integer;
+    FRadarMargin: Integer;
     FRadarPos: TVector2;
     FShowLabels: Boolean;
     FLabelVisibilityRange: Single;
@@ -243,6 +244,14 @@ type
     FFontSize: Integer;
     FMarkerColor: TColorB;
     FEdgeMarkerColor: TColorB;
+
+    // for radar shader
+    FStartTime: Single;
+    FResolution: array [0..2] of Single;
+    FTime: Single;
+    FRadarWaveShader: TShader;
+    FRadarRipleShader: TShader;
+    FRadarRenderTexture, FRadarRenderTexture2: TRenderTexture2D;
 
     procedure DrawRadarCircle;
     procedure DrawWorldMarkers(Camera: TSpaceCamera; modelPos: TVector3; distance: Single; color: TColorB);
@@ -265,9 +274,12 @@ type
 
 
 implementation
+uses RadarShader;
 
 const RungDistance = 2.0;
 const RungTimeToLive = 2.0;
+
+
 
 { TSpaceDust }
 constructor TSpaceDust.Create(Size: single; Count: integer);
@@ -1129,7 +1141,8 @@ begin
   FEngine := AEngine;
   FPlayer := nil;
   FMaxRange := 200;
-  FRadarSize := 120;
+  FRadarSize := 100;
+  FRadarMargin := 10;
   FRadarPos := Vector2Create(0, 0);
   FShowLabels := True;
   FLabelVisibilityRange := 0.7;
@@ -1137,6 +1150,24 @@ begin
   FFontSize := 10;
   FMarkerColor := YELLOW;
   FEdgeMarkerColor := ColorCreate(255, 165, 0, 255); // Оранжевый
+
+  FRadarRipleShader := LoadShaderFromMemory(nil, RIPLE_SHADER_FS);
+  FRadarWaveShader := LoadShaderFromMemory(nil, WAVE_SHADER_FS);
+
+  FRadarRenderTexture := LoadRenderTexture(Round(FRadarSize), Round(FRadarSize));
+  FRadarRenderTexture2 := LoadRenderTexture(Round(FRadarSize), Round(FRadarSize));
+  // Получаем uniform-переменные
+  FRadarRipleShader.locs[SHADER_LOC_VECTOR_VIEW] := GetShaderLocation(FRadarRipleShader, 'iResolution');
+  FRadarRipleShader.locs[SHADER_LOC_MATRIX_MODEL] := GetShaderLocation(FRadarRipleShader, 'iTime');
+
+  FRadarWaveShader.locs[SHADER_LOC_VECTOR_VIEW] := GetShaderLocation(FRadarWaveShader, 'iResolution');
+  FRadarWaveShader.locs[SHADER_LOC_MATRIX_MODEL] := GetShaderLocation(FRadarWaveShader, 'iTime');
+    // Устанавливаем разрешение в шейдер
+  FResolution[0] := FRadarSize;
+  FResolution[1] := FRadarSize;
+  FResolution[2] := 0;
+  SetShaderValue(FRadarRipleShader, FRadarRipleShader.locs[SHADER_LOC_VECTOR_VIEW], @FResolution, SHADER_UNIFORM_VEC3);
+  SetShaderValue(FRadarWaveShader, FRadarWaveShader.locs[SHADER_LOC_VECTOR_VIEW], @FResolution, SHADER_UNIFORM_VEC3);
 end;
 
 procedure TRadar.SetPlayer(AValue: TSpaceActor);
@@ -1148,35 +1179,38 @@ end;
 procedure TRadar.DrawRadarCircle;
 var
   radarCenter: TVector2;
-  margin: Integer;
 begin
-  margin := 20;
-  radarCenter.x := GetScreenWidth - FRadarSize div 2 - margin;
-  radarCenter.y := GetScreenHeight - FRadarSize div 2 - margin;
+  radarCenter.x := GetScreenWidth - FRadarSize div 2 - FRadarMargin;
+  radarCenter.y := GetScreenHeight - FRadarSize div 2 - FRadarMargin;
 
   // Фон радара
-  DrawCircle(Round(radarCenter.x), Round(radarCenter.y), FRadarSize div 2,
-    ColorCreate(0, 0, 32, 180));
+ DrawCircle(Round(radarCenter.x), Round(radarCenter.y), FRadarSize div 2,
+ ColorCreate(0, 0, 32, 180));
 
-  // Обводка радара
-//  DrawCircleLines(Round(radarCenter.x), Round(radarCenter.y), FRadarSize div 2,
-//    ColorCreate(0, 200, 255, 200));
+  // Обновление
+  FTime := GetTime() - FStartTime;
+  SetShaderValue(FRadarRipleShader, FRadarRipleShader.locs[SHADER_LOC_MATRIX_MODEL], @FTime, SHADER_UNIFORM_FLOAT);
+  SetShaderValue(FRadarWaveShader, FRadarWaveShader.locs[SHADER_LOC_MATRIX_MODEL], @FTime, SHADER_UNIFORM_FLOAT);
 
-  // Центральное перекрестие
-  {DrawLineEx(
-    Vector2Create(radarCenter.x - 4, radarCenter.y),
-    Vector2Create(radarCenter.x + 4, radarCenter.y),
-    1, DARKGREEN);
-  DrawLineEx(
-    Vector2Create(radarCenter.x, radarCenter.y - 4),
-    Vector2Create(radarCenter.x, radarCenter.y + 4),
-    1, DARKGREEN);
-    }
-  DrawCircle(Round(radarCenter.x), Round(radarCenter.y), 6,
-    DARKGREEN);
-  // Маркер игрока
-  //DrawCircle(Round(radarCenter.x), Round(radarCenter.y), 6, GREEN);
-  //DrawText('YOU', Round(radarCenter.x - 15), Round(radarCenter.y + 10), 10, GREEN);
+  // Рендерим шейдер в текстуру
+  BeginTextureMode(FRadarRenderTexture);
+        ClearBackground(BLANK);
+        BeginShaderMode(FRadarRipleShader);
+        // Рисуем прямоугольник, на который будет наложен шейдер
+          DrawRectangle(0, 0, Round(FRadarSize), Round(FRadarSize), WHITE);
+        EndShaderMode;
+  EndTextureMode;
+
+      // Рисуем полученную текстуру
+      DrawTexturePro(
+        FRadarRenderTexture.texture,
+        RectangleCreate(0, 0, FRadarSize, -FRadarSize),
+        RectangleCreate(radarCenter.x - FRadarSize div 2, radarCenter.y - FRadarSize div 2, FRadarSize, FRadarSize),
+        Vector2Zero(),
+        0,
+        WHITE
+      );
+
 end;
 
 function TRadar.GetObjectColor(Tag: Integer): TColorB;
@@ -1335,22 +1369,13 @@ var
 begin
   if (FPlayer = nil) or (FEngine = nil) then Exit;
 
-
-
-
-
-     // R3D_DrawModelPro(@FCrosshairModel, crosshairTransform);
-
-
   // Отрисовка круга радара
   BeginBlendMode(BLEND_ADDITIVE);
-    //rlDisableDepthTest();
       DrawRadarCircle;
-   // rlEnableDepthTest();
   EndBlendMode();
 
-  radarCenter.x := GetScreenWidth - FRadarSize div 2 - 20;
-  radarCenter.y := GetScreenHeight - FRadarSize div 2 - 20;
+  radarCenter.x := GetScreenWidth - FRadarSize div 2 - FRadarMargin;
+  radarCenter.y := GetScreenHeight - FRadarSize div 2 - FRadarMargin;
 
   for i := 0 to FEngine.FActorList.Count - 1 do
   begin
@@ -1370,179 +1395,40 @@ begin
     radarPos.x := radarCenter.x + Sin(angle) * (FRadarSize div 2) * normalizedDist;
     radarPos.y := radarCenter.y - Cos(angle) * (FRadarSize div 2) * normalizedDist;
 
-    BeginBlendMode(BLEND_ADDITIVE);
-     // rlDisableDepthTest();
-            DrawCircle(Round(radarPos.x), Round(radarPos.y),
-      Max(2, Round(4 * (1 - normalizedDist))), color);
-    //  rlEnableDepthTest();
-    EndBlendMode();
+    // Рендерим шейдер в текстуру
+    BeginTextureMode(FRadarRenderTexture2);
+          ClearBackground(BLANK);
+          BeginShaderMode(FRadarWaveShader);
+          // Рисуем прямоугольник, на который будет наложен шейдер
+            DrawRectangle(0, 0, Round(FRadarSize), Round(FRadarSize), WHITE);
+          EndShaderMode;
+    EndTextureMode;
 
+       BeginBlendMode(BLEND_ADDITIVE);
 
+         DrawCircle(Round(radarPos.x), Round(radarPos.y), Max(2, Round(4 * (1 - normalizedDist))), color);
 
+        // Рисуем полученную текстуру
+        DrawTexturePro(
+          FRadarRenderTexture2.texture,
+          RectangleCreate(0, 0, FRadarSize, -FRadarSize),
+          RectangleCreate(radarCenter.x - FRadarSize div 2, radarCenter.y - FRadarSize div 2, FRadarSize, FRadarSize),
+          Vector2Zero(),
+          0,
+          WHITE
+        );
 
+        EndBlendMode();
 
     // Отрисовка меток в мире
     if FShowLabels and (distance < FMaxRange * FLabelVisibilityRange) then
     begin
-
-      DrawWorldMarkers(Camera, modelPos, distance, color);
-
+      BeginBlendMode(BLEND_ADDITIVE);
+        DrawWorldMarkers(Camera, modelPos, distance, color);
+      EndBlendMode();
     end;
   end;
-
 end;
-
-
-
-{
-constructor TRadar.Create(AEngine: TSpaceEngine);
-begin
-  FEngine := AEngine;
-  FPlayer := nil;
-  FPosition := Vector2Create(20, 20);
- // FSize := 180;
-  FRange := 1000;
-  FBackgroundColor := ColorCreate(0, 0, 32, 200);
-  FForegroundColor := ColorCreate(0, 200, 255, 220);
-  FDefaultBlipColor := ColorCreate(255, 255, 0, 220);
-  FHostileBlipColor := ColorCreate(255, 50, 50, 220);
-  FFriendlyBlipColor := ColorCreate(50, 255, 50, 220);
-
-  // Инициализация новых полей для стиля Everspace 2
-  FScreenMargin := 0;
-  FEdgeMarkerSize := 20;
-  FViewAngle := 60 * DEG2RAD;
-  FMaxRange := 2000;
-  FHostileColor := RED;
-  FFriendlyColor := GREEN;
-  FNeutralColor := YELLOW;
-  FObjectiveColor := ColorCreate(255, 165, 0, 255);
-end;
-
-procedure TRadar.SetPlayer(AValue: TSpaceActor);
-begin
-  if FPlayer = AValue then Exit;
-  FPlayer := AValue;
-end;
-
-procedure TRadar.Draw(Camera: TSpaceCamera);
-var
-  i: Integer;
-  actor: TSpaceActor;
-  screenWidth, screenHeight: Integer;
-  screenCenter: TVector2;
-  relativePos, screenPos: TVector3;
-  dir, localPos: TVector3;
-  distance, angle, relAngle: Single;
-  isOffScreen: Boolean;
-  markerColor: TColorB;
-  playerForward, playerRight, playerUp: TVector3;
-  viewport: TRectangle;
-  screenPos2D: TVector2;
-begin
-  if (FPlayer = nil) or (FEngine = nil) then Exit;
-
-  // Получаем параметры экрана
-  screenWidth := GetScreenWidth;
-  screenHeight := GetScreenHeight;
-  screenCenter := Vector2Create(screenWidth / 2, screenHeight / 2);
-  viewport := RectangleCreate(0, 0, screenWidth, screenHeight);
-
-  // Получаем ориентацию игрока
-  playerForward := FPlayer.GetForward;
-  playerRight := FPlayer.GetRight;
-  playerUp := FPlayer.GetUp;
-
-  // Отрисовка всех объектов
-  for i := 0 to FEngine.Count - 1 do
-  begin
-    actor := FEngine[i];
-    if (actor = FPlayer) or (not actor.Visible) then Continue;
-
-    // Вычисляем относительную позицию
-    relativePos := Vector3Subtract(actor.Position, FPlayer.Position);
-    distance := Vector3Length(relativePos);
-    if distance > FMaxRange then Continue;
-
-    // Преобразуем в локальные координаты игрока
-    dir := Vector3Normalize(relativePos);
-    localPos.x := Vector3DotProduct(dir, playerRight);
-    localPos.y := Vector3DotProduct(dir, playerUp);
-    localPos.z := Vector3DotProduct(dir, playerForward);
-
-    // Проецируем на экран
-    angle := ArcTan2(localPos.x, localPos.z);
-    relAngle := Abs(angle);
-    isOffScreen := (relAngle > FViewAngle/2) or (localPos.z <= 0);
-
-    // Выбираем цвет метки
-    case actor.Tag of
-      1: markerColor := FHostileColor;    // Враги
-      2: markerColor := FFriendlyColor;   // Союзники
-      3: markerColor := FNeutralColor;    // Нейтральные
-      4: markerColor := FObjectiveColor;  // Цели квеста
-      else markerColor := WHITE;
-    end;
-
-    if not isOffScreen then
-    begin
-      // Объект в поле зрения - рисуем обычную метку
-      screenPos2D := GetWorldToScreen(Vector3Add(FPlayer.Position, relativePos), Camera.Camera);
-      if CheckCollisionPointRec(screenPos2D, viewport) then
-      begin
-        // Треугольная метка с расстоянием
-        DrawTriangle(
-          Vector2Create(screenPos2D.x, screenPos2D.y - 12),
-          Vector2Create(screenPos2D.x - 6, screenPos2D.y),
-          Vector2Create(screenPos2D.x + 6, screenPos2D.y),
-          ColorAlpha(markerColor,0.6) );
-
-        // Текст с расстоянием
-        DrawText(PChar(Format('%.0fm', [distance])),
-          Round(screenPos2D.x - 20), Round(screenPos2D.y + 10), 10, WHITE);
-      end;
-    end
-    else
-    begin
-      // Объект вне поля зрения - рисуем метку на границе
-     // if localPos.z > 0 then // Только если объект перед камерой
-     // begin
-        // Нормализуем угол
-        angle := Clamp(angle, -FViewAngle/2, FViewAngle/2);
-
-        // Вычисляем позицию на границе экрана
-        screenPos.x := screenCenter.x + Tan(angle) * screenCenter.x;
-        screenPos.y := screenCenter.y - (localPos.y / Cos(angle)) * screenCenter.y;
-
-        // Ограничиваем позицию границами экрана
-        screenPos.x := Clamp(screenPos.x, FScreenMargin, screenWidth - FScreenMargin);
-        screenPos.y := Clamp(screenPos.y, FScreenMargin, screenHeight - FScreenMargin);
-
-        // Рисуем стрелку направления
-        DrawTriangle(
-          Vector2Create(screenPos.x, screenPos.y - FEdgeMarkerSize),
-          Vector2Create(screenPos.x - FEdgeMarkerSize/2, screenPos.y),
-          Vector2Create(screenPos.x + FEdgeMarkerSize/2, screenPos.y),
-          ColorAlpha(markerColor,0.6));
-             // Текст с расстоянием
-        DrawText(PChar(Format('%.0fm', [distance])),
-          Round(screenPos.x - 20), Round(screenPos.y + 10), 10, WHITE);
-        // Линия к краю экрана
-       // DrawLineEx(
-       //   Vector2Create(screenPos.x, screenPos.y),
-       //   Vector2Create(screenCenter.x, screenCenter.y),
-       //   1, ColorAlpha(markerColor, 0.6));
-     // end;
-    end;
-  end;
-
-
-
-
-
-end;
- }
-
 
 
 

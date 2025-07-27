@@ -1,7 +1,7 @@
 unit ScreenSpace;
 
 {$mode ObjFPC}{$H+}
-{.$define DEBUG}
+{$define DEBUG}
 
 
 interface

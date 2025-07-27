@@ -8,7 +8,8 @@ uses
   {$IFDEF UNIX}
   CThreads,
   {$ENDIF}
-  Classes, SysUtils, CustApp, RayLib, ScreenManager, ScreenSpace, SpaceEngine, r3d;
+  Classes, SysUtils, CustApp, RayLib, ScreenManager, ScreenSpace, SpaceEngine,
+  r3d, radarshader;
 
 const
   // константы для экранов
@@ -46,7 +47,7 @@ begin
     R3D_SetSSAORadius(2.0);
     R3D_SetBloomIntensity(0.1);
     R3D_SetBloomMode(R3D_BLOOM_MIX);
-   // R3D_SetTonemapMode(R3D_TONEMAP_ACES);
+    R3D_SetTonemapMode(R3D_TONEMAP_ACES);
     R3D_SetModelImportScale(0.01);
 
 

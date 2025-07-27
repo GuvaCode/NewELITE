@@ -43,6 +43,10 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="SpaceEngine"/>
       </Unit>
+      <Unit>
+        <Filename Value="shaders/radarshader.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -53,7 +57,7 @@
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
       <Libraries Value="../binary"/>
-      <OtherUnitFiles Value="engine;extra;screen"/>
+      <OtherUnitFiles Value="engine;extra;screen;shaders"/>
       <UnitOutputDirectory Value="../temp/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <CodeGeneration>
