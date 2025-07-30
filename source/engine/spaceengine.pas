@@ -113,10 +113,14 @@ type
   { TSpaceActor }
   TSpaceActor = class
   private
+    FAcceleration: Single;       // Ускорение (скорость набора скорости)
+    FDeceleration: Single;       // Замедление (скорость потери скорости)
+    FCurrentSpeed: Single;       // Текущая скорость (для плавного изменения)
     FActorIndex: Integer;
     FAlignToHorizon: Boolean;
     FColliderType: TColliderType;
     FDoCollision: Boolean;
+    FLastCollisionTime: Single;
     FEngine: TSpaceEngine;
     FMaxSpeed: Single;
     FModel: TR3D_Model;
@@ -227,6 +231,9 @@ type
     property AlignToHorizon: Boolean read FAlignToHorizon write FAlignToHorizon default True;
     property ColliderType: TColliderType read FColliderType write FColliderType default ctBox;
     property SphereColliderSize: Single read FSphereColliderSize write FSphereColliderSize default 1;
+    property Acceleration: Single read FAcceleration write FAcceleration default 5.0;
+    property Deceleration: Single read FDeceleration write FDeceleration default 3.0;
+
   end;
 
   { TRadar }
@@ -251,13 +258,14 @@ type
     FTime: Single;
     FRadarWaveShader: TShader;
     FRadarRipleShader: TShader;
-    FRadarRenderTexture, FRadarRenderTexture2: TRenderTexture2D;
+    FRadarRenderTexture: TRenderTexture2D;
 
     procedure DrawRadarCircle;
     procedure DrawWorldMarkers(Camera: TSpaceCamera; modelPos: TVector3; distance: Single; color: TColorB);
     function GetObjectColor(Tag: Integer): TColorB;
   public
     constructor Create(AEngine: TSpaceEngine);
+    destructor Destroy; override;
     procedure Draw(Camera: TSpaceCamera);
     procedure SetPlayer(AValue: TSpaceActor);
 
@@ -698,6 +706,7 @@ begin
   R3D_DisableSkybox;
 end;
 
+
 procedure TSpaceEngine.ApplyInputToShip(Ship: TSpaceActor; Step: Single);
 var triggerRight, triggerLeft: Single;
 begin
@@ -810,10 +819,15 @@ begin
   FVelocity := Vector3Zero();
   FRotation := QuaternionIdentity();
   FScale := 1;
-  FMaxSpeed := 5;
+
   FThrottleResponse := 10;
   TurnRate := 180;
   TurnResponse := 10;
+  FMaxSpeed := 20.0;
+  FAcceleration := 5.0;    // Среднее ускорение
+  FDeceleration := 3.0;    // Среднее замедление
+  FCurrentSpeed := 0.0;    // Начинаем с нулевой скорости
+  FLastCollisionTime := 0.0;
 
   FAlignToHorizon := True;
 
@@ -841,7 +855,7 @@ procedure TSpaceActor.Assign(const Value: TSpaceActor);
 begin
   // Implementation remains the same
 end;
-
+{
 procedure TSpaceActor.Collision(const Other: TSpaceActor);
 var Correction: TVector3;
 begin
@@ -860,6 +874,64 @@ begin
     Other.OnCollision(Self);
   end;
 end;
+}
+procedure TSpaceActor.Collision(const Other: TSpaceActor);
+var
+  Correction, CollisionNormal, RelativeVelocity: TVector3;
+  ImpactForce, SpeedBeforeCollision: Single;
+// Коэффициент упругости (0.0 - полная неупругость, 1.0 - абсолютно упругий)
+const Elasticity = 0.3;
+begin
+  SetColliderRotation(@FCollider, FVisualRotation);
+  SetColliderTranslation(@FCollider, FPosition);
+
+  if TestColliderPair(@FCollider, @Other.FCollider) then
+  begin
+    // Получаем коррекцию позиции
+    Correction := GetCollisionCorrection(@FCollider, @Other.FCollider);
+
+    // Вычисляем нормаль столкновения
+    CollisionNormal := Vector3Normalize(Correction);
+
+    // Сохраняем скорость до столкновения
+    SpeedBeforeCollision := Vector3Length(FVelocity);
+
+    // Вычисляем относительную скорость
+    RelativeVelocity := Vector3Subtract(FVelocity, Other.FVelocity);
+
+    // Сила удара (проекция скорости на нормаль столкновения)
+    ImpactForce := Vector3DotProduct(RelativeVelocity, CollisionNormal);
+
+    // Применяем коррекцию позиции
+    FPosition := Vector3Add(FPosition, Correction);
+    SetColliderTranslation(@FCollider, FPosition);
+
+    // Физика столкновения - торможение и отскок
+    if ImpactForce > 0.1 then // Только при значительном ударе
+    begin
+
+
+      // Применяем торможение (чем сильнее удар, тем больше торможение)
+      FCurrentSpeed := FCurrentSpeed * (1.0 - Min(ImpactForce/MaxSpeed, 0.7));
+
+      // Эффект отскока
+      FVelocity := Vector3Add(FVelocity,
+        Vector3Scale(CollisionNormal, ImpactForce * Elasticity));
+
+      // Визуальные эффекты
+      //SpawnCollisionEffects(CollisionNormal, ImpactForce);
+
+      // Урон от столкновения
+      //ApplyCollisionDamage(ImpactForce);
+    end;
+
+    // Вызываем события столкновения
+    OnCollision(Other);
+    Other.OnCollision(Self);
+  end;
+end;
+
+
 
 procedure TSpaceActor.Collision;
 var i: Integer;
@@ -885,63 +957,150 @@ begin
 end;
 
 procedure TSpaceActor.Update(const DeltaTime: Single);
-var forwardSpeedMultipilier, autoSteerInput, targetVisualBank: single;
-    targetVelocity: TVector3;
-    transform: TMatrix; i: integer;
-
+const
+  COLLISION_RECOVERY_TIME = 1.5; // Время восстановления после столкновения (в секундах)
+var
+  forwardSpeedMultiplier, autoSteerInput, targetVisualBank: Single;
+  targetVelocity, moveDirection: TVector3;
+  transform: TMatrix;
+  i: Integer;
+  targetSpeed, speedDelta, accelerationRate: Single;
+  isChangingDirection, shouldBrake: Boolean;
+  collisionSlowdown, postCollisionTimer: Single;
 begin
-  // Give the ship some momentum when accelerating
-  FSmoothForward := SmoothDamp(FSmoothForward, InputForward, ThrottleResponse, deltaTime);
-  FSmoothLeft := SmoothDamp(FSmoothLeft, InputLeft, ThrottleResponse, deltaTime);
-  FSmoothUp := SmoothDamp(FSmoothUp, InputUp, ThrottleResponse, deltaTime);
+  // 1. Обработка пост-коллизионного замедления
+  postCollisionTimer := Max(0, FLastCollisionTime - DeltaTime);
+  collisionSlowdown := IfThen(postCollisionTimer > 0,
+    Lerp(0.3, 1.0, 1.0 - (postCollisionTimer / COLLISION_RECOVERY_TIME)),
+    1.0);
+  FLastCollisionTime := postCollisionTimer;
 
-  // Flying in reverse should be slower
-  forwardSpeedMultipilier := ifthen(FSmoothForward > 0.0, 1.0, 0.33);
+  // 2. Сглаживание вводов с учетом столкновений
+  FSmoothForward := SmoothDamp(FSmoothForward,
+    InputForward * collisionSlowdown,
+    ThrottleResponse,
+    DeltaTime);
 
-  targetVelocity := Vector3Zero();
-  targetVelocity := Vector3Add(
-    targetVelocity, Vector3Scale(GetForward(), MaxSpeed * forwardSpeedMultipilier * FSmoothForward));
-  targetVelocity := Vector3Add(
-    targetVelocity, Vector3Scale(GetUp(), MaxSpeed * 0.5 * FSmoothUp));
-  targetVelocity := Vector3Add(
-    targetVelocity, Vector3Scale(GetLeft(), MaxSpeed * 0.5 * FSmoothLeft));
+  FSmoothLeft := SmoothDamp(FSmoothLeft,
+    InputLeft * collisionSlowdown,
+    ThrottleResponse,
+    DeltaTime);
 
-  FVelocity := SmoothDamp(FVelocity, targetVelocity, 2.5, deltaTime);
-  FPosition := Vector3Add(FPosition, Vector3Scale(FVelocity, deltaTime));
+  FSmoothUp := SmoothDamp(FSmoothUp,
+    InputUp * collisionSlowdown,
+    ThrottleResponse,
+    DeltaTime);
 
-  // Give the ship some inertia when turning
-  FSmoothPitchDown := SmoothDamp(FSmoothPitchDown, InputPitchDown, TurnResponse, deltaTime);
-  FSmoothRollRight := SmoothDamp(FSmoothRollRight, InputRollRight, TurnResponse, deltaTime);
-  FSmoothYawLeft := SmoothDamp(FSmoothYawLeft, InputYawLeft, TurnResponse, deltaTime);
+  // 3. Обратный ход медленнее
+  forwardSpeedMultiplier := IfThen(FSmoothForward > 0.0, 1.0, 0.33);
 
-  RotateLocalEuler(Vector3Create(0, 0, 1), FSmoothRollRight * TurnRate * deltaTime);
-  RotateLocalEuler(Vector3Create(1, 0, 0), FSmoothPitchDown * TurnRate * deltaTime);
-  RotateLocalEuler(Vector3Create(0, 1, 0), FSmoothYawLeft * TurnRate * deltaTime);
+  // 4. Расчет целевой скорости
+  targetSpeed := FSmoothForward * FMaxSpeed;
+  moveDirection := GetForward();
 
-  // Auto-roll to align to horizon
-  if (FAlignToHorizon) and (abs(GetForward().y) < 0.8) then
+  // 5. Определение смены направления
+  isChangingDirection := (FCurrentSpeed < 0) and (targetSpeed > 0) or
+                         (FCurrentSpeed > 0) and (targetSpeed < 0);
+
+  // 6. Определение необходимости торможения
+  shouldBrake := isChangingDirection or
+                ((FSmoothForward = 0) and (Abs(FCurrentSpeed) > 0.1)) or
+                (FLastCollisionTime > 0);
+
+  // 7. Применение ускорения/торможения
+  if shouldBrake then
   begin
-    autoSteerInput := GetRight().y;
-    RotateLocalEuler(Vector3Create(0, 0, 1), autoSteerInput * TurnRate * 0.5 * deltaTime);
+    if FLastCollisionTime > 0 then
+      accelerationRate := FDeceleration * 4.0  // Сильное торможение после столкновения
+    else if isChangingDirection then
+      accelerationRate := FDeceleration * 2.5  // Торможение при смене направления
+    else
+      accelerationRate := FDeceleration;       // Обычное торможение
+
+    // Торможение до нуля
+    if FCurrentSpeed > 0 then
+      FCurrentSpeed := Max(0, FCurrentSpeed - accelerationRate * DeltaTime)
+    else
+      FCurrentSpeed := Min(0, FCurrentSpeed + accelerationRate * DeltaTime);
+  end
+  else
+  begin
+    // Нормальное ускорение с учетом столкновений
+    accelerationRate := IfThen(Abs(targetSpeed) > Abs(FCurrentSpeed),
+      FAcceleration * collisionSlowdown,
+      FDeceleration);
+
+    // Плавное достижение целевой скорости
+    if targetSpeed > FCurrentSpeed then
+      FCurrentSpeed := Min(targetSpeed, FCurrentSpeed + accelerationRate * DeltaTime)
+    else if targetSpeed < FCurrentSpeed then
+      FCurrentSpeed := Max(targetSpeed, FCurrentSpeed - accelerationRate * DeltaTime);
   end;
 
-  // When yawing and strafing, there's some bank added to the model for visual flavor
+  // 8. Применение движения
+  targetVelocity := Vector3Zero();
+  targetVelocity := Vector3Add(
+    targetVelocity,
+    Vector3Scale(moveDirection,  FCurrentSpeed * forwardSpeedMultiplier * collisionSlowdown)
+  );
+  targetVelocity := Vector3Add(
+    targetVelocity,
+    Vector3Scale(GetUp(), MaxSpeed * 0.5 * FSmoothUp * collisionSlowdown)
+  );
+  targetVelocity := Vector3Add(
+    targetVelocity,
+    Vector3Scale(GetLeft(), MaxSpeed * 0.5 * FSmoothLeft * collisionSlowdown)
+  );
+
+  // 9. Сглаживание скорости
+  FVelocity := SmoothDamp(FVelocity, targetVelocity, 2.5, DeltaTime);
+  FPosition := Vector3Add(FPosition, Vector3Scale(FVelocity, DeltaTime));
+
+  // 10. Обработка вращений (с меньшей чувствительностью после столкновения)
+  FSmoothPitchDown := SmoothDamp(FSmoothPitchDown,
+    InputPitchDown * collisionSlowdown,
+    TurnResponse,
+    DeltaTime);
+
+  FSmoothRollRight := SmoothDamp(FSmoothRollRight,
+    InputRollRight * collisionSlowdown,
+    TurnResponse,
+    DeltaTime);
+
+  FSmoothYawLeft := SmoothDamp(FSmoothYawLeft,
+    InputYawLeft * collisionSlowdown,
+    TurnResponse,
+    DeltaTime);
+
+  // 11. Применение вращений
+  RotateLocalEuler(Vector3Create(0, 0, 1), FSmoothRollRight * TurnRate * DeltaTime * collisionSlowdown);
+  RotateLocalEuler(Vector3Create(1, 0, 0), FSmoothPitchDown * TurnRate * DeltaTime * collisionSlowdown);
+  RotateLocalEuler(Vector3Create(0, 1, 0), FSmoothYawLeft * TurnRate * DeltaTime * collisionSlowdown);
+
+  // 12. Автовыравнивание
+  if (FAlignToHorizon) and (Abs(GetForward().y) < 0.8) then
+  begin
+    autoSteerInput := GetRight().y;
+    RotateLocalEuler(Vector3Create(0, 0, 1), autoSteerInput * TurnRate * 0.5 * DeltaTime * collisionSlowdown);
+  end;
+
+  // 13. Визуальный крен
   targetVisualBank := (-30 * DEG2RAD * FSmoothYawLeft) + (-15 * DEG2RAD * FSmoothLeft);
-  FVisualBank := SmoothDamp(FVisualBank, targetVisualBank, 10, deltaTime);
+  FVisualBank := SmoothDamp(FVisualBank, targetVisualBank, 10, DeltaTime);
   FVisualRotation := QuaternionMultiply(FRotation, QuaternionFromAxisAngle(Vector3Create(0, 0, 1), FVisualBank));
 
-  // Sync up the raylib representation of the model with the ship's position
+  // 14. Обновление матрицы преобразования
   transform := MatrixTranslate(FPosition.x, FPosition.y, FPosition.z);
-  transform := MatrixMultiply(QuaternionToMatrix(FvisualRotation), transform);
+  transform := MatrixMultiply(QuaternionToMatrix(FVisualRotation), transform);
   transform := MatrixMultiply(MatrixScale(Scale, Scale, Scale), transform);
   FModelTransform := transform;
 
-  // Update collider after position change
+  // 15. Обновление коллайдера
   SetColliderRotation(@FCollider, FVisualRotation);
   SetColliderTranslation(@FCollider, FPosition);
   FModelTransform := MatrixMultiply(MatrixScale(FScale, FScale, FScale), GetColliderTransform(@FCollider));
 
-  // The currently active trail rung is dragged directly behind the ship for a smoother trail
+  // 16. Обновление эффекта следа
   PositionActiveTrailRung();
   if (Vector3Distance(Position, LastRungPosition) > RungDistance) then
   begin
@@ -949,19 +1108,20 @@ begin
     LastRungPosition := Position;
   end;
 
-  for i := 0 to RungCount -1 do
-    Rungs[i].TimeToLive -= deltaTime;
+  // 17. Обновление времени жизни сегментов следа
+  for i := 0 to RungCount - 1 do
+    Rungs[i].TimeToLive -= DeltaTime;
 
-  // Update ray
+  // 18. Обновление луча
   FRay.direction := GetForward;
   FRay.position := Position;
 
-
+  // 19. Визуальные эффекты двигателя
   ActorModel.materials[1].emission.color := GREEN;
-  ActorModel.materials[1].emission.energy := Clamp(GetSpeed * FMaxSpeed, 30.0, 300.0);
-  ActorModel.materials[1].albedo.color := black;
-
+  ActorModel.materials[1].emission.energy := Clamp(Abs(FCurrentSpeed)/MaxSpeed * 300.0, 30.0, 300.0);
+  ActorModel.materials[1].albedo.color := BLACK;
 end;
+
 
 procedure TSpaceActor.Render;
 begin
@@ -1140,12 +1300,12 @@ constructor TRadar.Create(AEngine: TSpaceEngine);
 begin
   FEngine := AEngine;
   FPlayer := nil;
-  FMaxRange := 200;
+  FMaxRange := 600;
   FRadarSize := 100;
   FRadarMargin := 10;
   FRadarPos := Vector2Create(0, 0);
   FShowLabels := True;
-  FLabelVisibilityRange := 0.7;
+  FLabelVisibilityRange := 1.0;
   FLabelSize := 15;
   FFontSize := 10;
   FMarkerColor := YELLOW;
@@ -1155,7 +1315,7 @@ begin
   FRadarWaveShader := LoadShaderFromMemory(nil, WAVE_SHADER_FS);
 
   FRadarRenderTexture := LoadRenderTexture(Round(FRadarSize), Round(FRadarSize));
-  FRadarRenderTexture2 := LoadRenderTexture(Round(FRadarSize), Round(FRadarSize));
+
   // Получаем uniform-переменные
   FRadarRipleShader.locs[SHADER_LOC_VECTOR_VIEW] := GetShaderLocation(FRadarRipleShader, 'iResolution');
   FRadarRipleShader.locs[SHADER_LOC_MATRIX_MODEL] := GetShaderLocation(FRadarRipleShader, 'iTime');
@@ -1168,6 +1328,14 @@ begin
   FResolution[2] := 0;
   SetShaderValue(FRadarRipleShader, FRadarRipleShader.locs[SHADER_LOC_VECTOR_VIEW], @FResolution, SHADER_UNIFORM_VEC3);
   SetShaderValue(FRadarWaveShader, FRadarWaveShader.locs[SHADER_LOC_VECTOR_VIEW], @FResolution, SHADER_UNIFORM_VEC3);
+end;
+
+destructor TRadar.Destroy;
+begin
+  UnloadShader(FRadarRipleShader);
+  UnloadShader(FRadarWaveShader);
+  UnloadRenderTexture(FRadarRenderTexture);
+  inherited Destroy;
 end;
 
 procedure TRadar.SetPlayer(AValue: TSpaceActor);
@@ -1396,7 +1564,7 @@ begin
     radarPos.y := radarCenter.y - Cos(angle) * (FRadarSize div 2) * normalizedDist;
 
     // Рендерим шейдер в текстуру
-    BeginTextureMode(FRadarRenderTexture2);
+    BeginTextureMode(FRadarRenderTexture);
           ClearBackground(BLANK);
           BeginShaderMode(FRadarWaveShader);
           // Рисуем прямоугольник, на который будет наложен шейдер
@@ -1410,7 +1578,7 @@ begin
 
         // Рисуем полученную текстуру
         DrawTexturePro(
-          FRadarRenderTexture2.texture,
+          FRadarRenderTexture.texture,
           RectangleCreate(0, 0, FRadarSize, -FRadarSize),
           RectangleCreate(radarCenter.x - FRadarSize div 2, radarCenter.y - FRadarSize div 2, FRadarSize, FRadarSize),
           Vector2Zero(),

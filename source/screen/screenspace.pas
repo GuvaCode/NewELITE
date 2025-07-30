@@ -63,6 +63,7 @@ begin
   Ship.ActorModel := ShipModel;
   Ship.DoCollision := True;
   Ship.AlignToHorizon:=False;
+  Ship.MaxSpeed:=100;
 
   Ship2 := TSpaceActor.Create(Engine);
   Ship2.ColliderType:= ctBox;
@@ -79,9 +80,9 @@ begin
   Ship3.ColliderType:= ctBox;
   Ship3.SphereColliderSize:=17;
   Ship3.ActorModel := R3D_LoadModel(('data' + '/models/untitled.glb')); ;
-  Ship3.Position := Vector3Create(10, - 10,10);
+  Ship3.Position := Vector3Create(10, - 10,100);
   Ship3.DoCollision:= TRUE;
-
+  Ship3.Scale:=20;
   Ship3.Tag:=3;
 
 
@@ -162,7 +163,7 @@ begin
   Engine.ClearDeadActor;
   Engine.Collision;
 
-  Engine.ApplyInputToShip(Ship, 1);
+  Engine.ApplyInputToShip(Ship, 0.5);
 
   Camera.FollowActor(Ship, MoveCount);
 
