@@ -37,7 +37,7 @@ begin
   inherited Create(TheOwner);
 
   InitWindow({GetScreenWidth, GetScreenHeight, }800,600, AppTitle); // for window settings, look at example - window flags
-  R3D_Init(800,600,R3D_FLAG_DEPTH_PREPASS {or R3D_FLAG_TRANSPARENT_SORTING});
+  R3D_Init(800,600, 0 {or R3D_FLAG_TRANSPARENT_SORTING});
  // SetTargetFPS(60); // Set our game to run at 60 frames-per-second
    //SetWindowState({FLAG_MSAA_4X_HINT or FLAG_FULLSCREEN_MODE or});
     // Configure rendering effects

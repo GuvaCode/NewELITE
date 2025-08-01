@@ -42,7 +42,7 @@ begin
   Engine := TSpaceEngine.Create;
   Engine.CrosshairFar.Create('data' + '/models/UI/crosshair2.gltf');
   Engine.CrosshairNear.Create('data' + '/models/UI/crosshair.gltf');
-  Engine.LoadSkyBox('HDR_marslike_planet_close.hdr', SQHigh, STPanorama);
+  Engine.LoadSkyBox('data' +'/skybox/planets/HDR_marslike_planet.hdr', SQHigh, STPanorama);
   Engine.EnableSkybox;
   Engine.Light[0] := R3D_CreateLight(R3D_LIGHT_DIR);
 
@@ -63,6 +63,7 @@ begin
   Ship.ActorModel := ShipModel;
   Ship.DoCollision := True;
   Ship.AlignToHorizon:=False;
+  Ship.MaxSpeed:=100;
 
   Ship2 := TSpaceActor.Create(Engine);
   Ship2.ColliderType:= ctBox;
@@ -70,7 +71,7 @@ begin
   Ship2.ActorModel := ShipModel2;
   Ship2.Position := Vector3Create(10,10,10);
   Ship2.DoCollision:= TRUE;
-
+  Ship2.ShipType:=Police;
   Ship2.Tag:=1;
   Ship.MaxSpeed:=20;
 
@@ -83,8 +84,10 @@ begin
   Ship3.DoCollision:= TRUE;
   Ship3.Scale:=20;
   Ship3.Tag:=3;
-
-
+  Ship3.ShipType:=PIRATE;
+  // При старте игры или активации корабля
+  DisableCursor(); // Скрыть курсор
+  SetMousePosition(GetScreenWidth div 2, GetScreenHeight div 2);
   {
   Engine.Radar.Player := Ship;
   Engine.Radar.Position := Vector2Create(20, 20);
@@ -107,30 +110,7 @@ begin
 
  // Ship.ActorModel.materials[1]:= Material;
 
- Ship.EngineLeftPoint[0] := Vector3Create(
-    Ship.ActorModel.meshes[0].vertices[6].position.x,
-    Ship.ActorModel.meshes[0].vertices[7].position.y,
-    Ship.ActorModel.meshes[0].vertices[8].position.z
-  );
 
-  Ship.EngineRightPoint[0] := Vector3Create(
-    Ship.ActorModel.meshes[0].vertices[3].position.x,
-    Ship.ActorModel.meshes[0].vertices[4].position.y,
-    Ship.ActorModel.meshes[0].vertices[5].position.z);
-
- { Ship.EngineLeftPoint[0]  := Vector3Create(Ship.ActorModel.meshes[1].vertices[6],
-                                            Ship.ActorModel.meshes[1].vertices[7],
-                                            Ship.ActorModel.meshes[1].vertices[8]);
-  }
- { Ship.EngineRightPoint[0] := Vector3Create(Ship.ActorModel.meshes[1].vertices[3],
-                                            Ship.ActorModel.meshes[1].vertices[4],
-                                            Ship.ActorModel.meshes[1].vertices[5]);
-
-  }
-  //Vector3Create( 0.10819 , -0.04508, -0.21762);
-
-  Ship.EngineLeftPoint[1]  := Vector3Create( -0.10860 , -0.04508, -0.21762);
-  Ship.EngineRightPoint[1] := Vector3Create( -0.25327 , -0.04508, -0.21762);
  {
      for i := 0  to Fmodel.meshes[1].vertexCount -1 do
     begin
