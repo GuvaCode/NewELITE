@@ -178,6 +178,7 @@ type
      FVisible: Boolean;           // Флаг видимости
      FRay: TRay;                  // Луч для проверки пересечений
      FCollider: TCollider;        // Коллайдер
+
      // Установка 3D модели с автоматическим созданием коллайдера
      procedure SetModel(AValue: TR3D_Model);
      // Установка позиции с обновлением коллайдера
@@ -243,8 +244,8 @@ type
      procedure RotationToActor(targetActor: TSpaceActor; z_axis: boolean = false; deflection: Single = 0.05);
      // Поворот к заданному вектору
      procedure RotationToVector(target: TVector3; z_axis: boolean = false; deflection: Single = 0.05);
-     property ActorModel: TR3D_Model read FModel write SetModel;
 
+     property ActorModel: TR3D_Model read FModel write SetModel;
      property Engine: TSpaceEngine read FEngine write FEngine;
      property Position: TVector3 read FPosition write SetPosition;
      property Projection: TVector4 read FProjection write FProjection;
@@ -262,6 +263,7 @@ type
      property ActorIndex: Integer read FActorIndex write FActorIndex;
      property DoCollision: Boolean read FDoCollision write FDoCollision;
      property MaxSpeed: Single read FMaxSpeed write FMaxSpeed default 20;
+     property CurrentSpeed: Single read FCurrentSpeed;
      property ThrottleResponse: Single read FThrottleResponse write FThrottleResponse default 10;
      property TurnResponse: Single read FTurnResponse write FTurnResponse default 10;
      property TurnRate: Single read FTurnRate write FTurnRate default 180;
@@ -913,6 +915,7 @@ begin
   FCurrentSpeed := 0.0;
   FLastCollisionTime := 0.0;
   FAlignToHorizon := True;
+
   // Добавление актора в движок
   Engine.Add(Self);
 end;
@@ -934,7 +937,7 @@ end;
 procedure TSpaceActor.Collision(const Other: TSpaceActor);
 var
   Correction, CollisionNormal, RelativeVelocity: TVector3;
-  ImpactForce, SpeedBeforeCollision: Single;
+  ImpactForce{, SpeedBeforeCollision}: Single;
 const
   Elasticity = 0.3;       // Коэффициент упругости
   MinImpactForce = 0.1;   // Минимальная сила удара
@@ -950,7 +953,7 @@ begin
     // Получение корректировки позиции
     Correction := GetCollisionCorrection(@FCollider, @Other.FCollider);
     CollisionNormal := Vector3Normalize(Correction);
-    SpeedBeforeCollision := Vector3Length(FVelocity);
+   // SpeedBeforeCollision := Vector3Length(FVelocity);
 
     // Расчет относительной скорости
     RelativeVelocity := Vector3Subtract(FVelocity, Other.FVelocity);
@@ -1008,7 +1011,6 @@ var
   forwardSpeedMultipilier, autoSteerInput, targetVisualBank: single;
   targetVelocity: TVector3;
   transform: TMatrix;
-  i: integer;
   targetSpeed: Single;
   acceleration: Single;
 begin
@@ -1092,6 +1094,8 @@ begin
   // Обновление луча (для проверки пересечений)
   FRay.direction := GetForward;
   FRay.position := Position;
+
+
 end;
 
 // Отрисовка актора
@@ -1326,7 +1330,6 @@ begin
 
 end;
 
-
 // Измененная функция для получения цвета по типу корабля
 function TRadar.GetObjectColor(ShipType: TShipType): TColorB;
 begin
@@ -1549,9 +1552,6 @@ begin
     end;
   end;
 end;
-
-
-
 
 end.
 

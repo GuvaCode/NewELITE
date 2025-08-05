@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#Author: vadim
+#fplitex86_64-win64.exe
+#Rating=1-5
+export PW_VULKAN_USE="2"
+export PW_WINE_USE="PROTON_LG_9-27"
+export PW_PREFIX_NAME="DEFAULT"
+export PORTPROTON_NAME="fplitex86_64-win64"
+export FILE_DESCRIPTION=""
+export FILE_SHA256SUM="f0ace1fb256817fe992a6b909a0cf4346a0efce50c89229fc11e891ee8cfab74"

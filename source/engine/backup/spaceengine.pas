@@ -178,6 +178,7 @@ type
      FVisible: Boolean;           // Флаг видимости
      FRay: TRay;                  // Луч для проверки пересечений
      FCollider: TCollider;        // Коллайдер
+
      // Установка 3D модели с автоматическим созданием коллайдера
      procedure SetModel(AValue: TR3D_Model);
      // Установка позиции с обновлением коллайдера
@@ -243,8 +244,8 @@ type
      procedure RotationToActor(targetActor: TSpaceActor; z_axis: boolean = false; deflection: Single = 0.05);
      // Поворот к заданному вектору
      procedure RotationToVector(target: TVector3; z_axis: boolean = false; deflection: Single = 0.05);
-     property ActorModel: TR3D_Model read FModel write SetModel;
 
+     property ActorModel: TR3D_Model read FModel write SetModel;
      property Engine: TSpaceEngine read FEngine write FEngine;
      property Position: TVector3 read FPosition write SetPosition;
      property Projection: TVector4 read FProjection write FProjection;
@@ -262,6 +263,7 @@ type
      property ActorIndex: Integer read FActorIndex write FActorIndex;
      property DoCollision: Boolean read FDoCollision write FDoCollision;
      property MaxSpeed: Single read FMaxSpeed write FMaxSpeed default 20;
+     property CurrentSpeed: Single read FCurrentSpeed;
      property ThrottleResponse: Single read FThrottleResponse write FThrottleResponse default 10;
      property TurnResponse: Single read FTurnResponse write FTurnResponse default 10;
      property TurnRate: Single read FTurnRate write FTurnRate default 180;
@@ -565,32 +567,34 @@ begin
   FMouseForFly := False; // Управление мышью по умолчанию выключено
 end;
 
+// Уничтожение движка с очисткой ресурсов
 destructor TSpaceEngine.Destroy;
 var i: integer;
 begin
+  // Помечаем все акторы как уничтоженные
   for i := 0 to FActorList.Count - 1 do
   begin
     TSpaceActor(FActorList.Items[i]).Dead;
   end;
-
+  // Очищаем список уничтоженных акторов
   ClearDeadActor;
-
+  // Освобождаем списки
   FActorList.Free;
   FDeadActorList.Free;
-
-  // Unload skybox if used
+  // Выгружаем скайбокс
   R3D_UnloadSkybox(FSkyBox);
-
-  // Close R3D
+  // Закрываем R3D
   R3D_Close;
 
   TraceLog(LOG_Info,PChar('Space Engine: Engine Destroy'));
   inherited Destroy;
 end;
 
+// Добавление актора в движок с сортировкой
 procedure TSpaceEngine.Add(const ModelActor: TSpaceActor);
 var L, H, I: Integer;
 begin
+  // Бинарный поиск места для вставки
   L := 0;
   H := FActorList.Count - 1;
   while (L <= H) do
@@ -601,11 +605,13 @@ begin
   FActorList.Insert(L, ModelActor);
 end;
 
+// Удаление актора из движка
 procedure TSpaceEngine.Remove(const ModelActor: TSpaceActor);
 begin
   FActorList.Remove(ModelActor);
 end;
 
+// Перемещение актора в другой движок
 procedure TSpaceEngine.Change(ModelActor: TSpaceActor; Dest: TSpaceEngine);
 begin
   Dest.Add(ModelActor);
@@ -613,45 +619,52 @@ begin
   FActorList.Remove(ModelActor);
 end;
 
+// Обновление состояния движка
 procedure TSpaceEngine.Update(DeltaTime: Single; DustViewPosition: TVector3);
 var i: Integer;
 begin
+  // Обновляем позиции космической пыли
   FSpaceDust.UpdateViewPosition(DustViewPosition);
+  // Обновляем все акторы
   for i := 0 to FActorList.Count - 1 do
   begin
     TSpaceActor(FActorList.Items[i]).Update(DeltaTime);
   end;
 end;
 
+// Отрисовка сцены
 procedure TSpaceEngine.Render(Camera: TSpaceCamera; ShowDebugAxes,
   ShowDebugRay: Boolean; DustVelocity: TVector3; DustDrawDots: boolean);
 var i: Integer;
 begin
-
+  // Отрисовка всех акторов
   Camera.BeginDrawing;
     for i := 0 to FActorList.Count - 1 do
       TSpaceActor(FActorList.Items[i]).Render();
   Camera.EndDrawing;
-
+  // Отрисовка космической пыли и прицелов
   BeginMode3D(Camera.Camera);
   FSpaceDust.Draw(Camera.GetPosition(), DustVelocity, DustDrawDots);
     CrosshairNear.DrawCrosshair();
     CrosshairFar.DrawCrosshair();
+
+  // Отладочная информация (оси и коллайдеры)
   if ShowDebugAxes then
   begin
-
     BeginBlendMode(BLEND_ADDITIVE);
-    DrawGrid(10, 1.0);
+    DrawGrid(10, 1.0);  // Отрисовка сетки
     for i := 0 to FActorList.Count - 1 do
     begin
-
+      // Оси объекта (вперед, влево, вверх)
       DrawLine3D(TSpaceActor(FActorList.Items[i]).Position, Vector3Add(TSpaceActor(FActorList.Items[i]).Position, TSpaceActor(FActorList.Items[i]).GetForward), ColorCreate(0, 0, 255, 255));
       DrawLine3D(TSpaceActor(FActorList.Items[i]).Position, Vector3Add(TSpaceActor(FActorList.Items[i]).Position, TSpaceActor(FActorList.Items[i]).GetLeft), ColorCreate(255, 0, 0, 255));
       DrawLine3D(TSpaceActor(FActorList.Items[i]).Position, Vector3Add(TSpaceActor(FActorList.Items[i]).Position, TSpaceActor(FActorList.Items[i]).GetUp), ColorCreate(0, 255, 0, 255));
-
+      // Отрисовка коллайдеров
       case TSpaceActor(FActorList.Items[i]).FCollider.ColliderType of
+        // Отрисовка сетки сферы
         Collider.ctSphere:
            DrawSphereWires(TSpaceActor(FActorList.Items[i]).FPosition, TSpaceActor(FActorList.Items[i]).FSphereColliderSize, 32, 32, RED);
+        // Отрисовка линий bounding box
         Collider.ctBox:
           begin
             DrawLine3D(TSpaceActor(FActorList.Items[i]).FCollider.vertGlobal[0], TSpaceActor(FActorList.Items[i]).FCollider.vertGlobal[1], SKYBLUE);
@@ -669,29 +682,31 @@ begin
           end;
        end; //end case
     end;
-
-
     EndBlendMode();
-
   end;
+
+  // Повторная отрисовка прицелов (поверх всего)
     CrosshairNear.DrawCrosshair();
     CrosshairFar.DrawCrosshair();
   EndMode3D;
 
-  // Рисуем радар поверх всего
+  // Отрисовка радара (поверх всего)
   if Assigned(FRadar) and Assigned(FRadar.FPlayer) then
     FRadar.Draw(Camera);
 
 end;
 
+// Проверка столкновений между всеми акторами
 procedure TSpaceEngine.Collision;
 var
   i, j: Integer;
 begin
+  // Проверяем все пары акторов
   for i := 0 to FActorList.Count - 1 do
   begin
     for j := i + 1 to FActorList.Count - 1 do
     begin
+      // Проверяем только акторы с включенной коллизией
       if (TSpaceActor(FActorList.Items[i]).DoCollision) and
          (TSpaceActor(FActorList.Items[j]).DoCollision) then
         TSpaceActor(FActorList.Items[i]).Collision(TSpaceActor(FActorList.Items[j]));
@@ -699,6 +714,7 @@ begin
   end;
 end;
 
+// Очистка всех акторов
 procedure TSpaceEngine.Clear;
 begin
   while Count > 0 do
@@ -707,6 +723,7 @@ begin
   end;
 end;
 
+// Очистка уничтоженных акторов
 procedure TSpaceEngine.ClearDeadActor;
 begin
   while FDeadActorList.Count -1 >= 0 do
@@ -715,6 +732,7 @@ begin
   end;
 end;
 
+// Загрузка скайбокса из файла
 procedure TSpaceEngine.LoadSkyBox(FileName: String; Quality: TSkyBoxQuality;
   SkyBoxType: TSkyBoxType);
 begin
@@ -725,6 +743,7 @@ begin
 
 end;
 
+// Загрузка скайбокса из памяти
 procedure TSpaceEngine.LoadSkyBoxFromMemory(SkyBoxImage: TImage;
   Quality: TSkyBoxQuality; SkyBoxType: TSkyBoxType);
 begin
@@ -734,17 +753,19 @@ begin
   end;
 end;
 
+// Включение скайбокса
 procedure TSpaceEngine.EnableSkybox;
 begin
- R3D_EnableSkybox(FSkyBox);
+  R3D_EnableSkybox(FSkyBox);
 end;
 
+// Выключение скайбокса
 procedure TSpaceEngine.DisableSkybox;
 begin
   R3D_DisableSkybox;
 end;
 
-
+// Применение управления к кораблю
 procedure TSpaceEngine.ApplyInputToShip(Ship: TSpaceActor; Step: Single);
 var
   triggerRight, triggerLeft: Single;
@@ -755,27 +776,28 @@ begin
   mouseSensitivity := 0.2;    // Чувствительность мыши
   deadZone := 0.2;            // Мертвая зона в центре (20% от радиуса)
 
+  // Управление вперед/назад
   Ship.InputForward := 0;
   if (IsKeyDown(KEY_W)) then Ship.InputForward += Step;
   if (IsKeyDown(KEY_S)) then Ship.InputForward -= Step;
-
   Ship.InputForward -= GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
   Ship.InputForward := Clamp(Ship.InputForward, -Step, Step);
 
+  // Управление влево/вправо
   Ship.InputLeft := 0;
   if (IsKeyDown(KEY_D)) then Ship.InputLeft -= Step;
   if (IsKeyDown(KEY_A)) then Ship.InputLeft += Step;
-
   Ship.InputLeft -= GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
   Ship.InputLeft := Clamp(Ship.InputLeft, -Step, Step);
 
+  // Управление вверх/вниз
   Ship.InputUp := 0;
   if (IsKeyDown(KEY_SPACE)) then Ship.InputUp += Step;
   if (IsKeyDown(KEY_LEFT_CONTROL)) then Ship.InputUp -= Step;
 
+  // Управление триггерами геймпада
   triggerRight := GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_TRIGGER);
   triggerRight := Remap(triggerRight, -Step, Step, 0, Step);
-
   triggerLeft := GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_TRIGGER);
   triggerLeft := Remap(triggerLeft, -Step, Step, 0, Step);
 
@@ -783,6 +805,7 @@ begin
   Ship.InputUp -= triggerLeft;
   Ship.InputUp := Clamp(Ship.InputUp, -Step, Step);
 
+  // Управление поворотом (рыскание)
   Ship.InputYawLeft := 0;
   if (IsKeyDown(KEY_RIGHT)) then Ship.InputYawLeft -= Step;
   if (IsKeyDown(KEY_LEFT)) then Ship.InputYawLeft += Step;
@@ -790,6 +813,7 @@ begin
   Ship.InputYawLeft -= GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_X);
   Ship.InputYawLeft := Clamp(Ship.InputYawLeft, -Step, Step);
 
+  // Управление наклоном (тангаж)
   Ship.InputPitchDown := 0;
   if (IsKeyDown(KEY_UP)) then Ship.InputPitchDown += Step;
   if (IsKeyDown(KEY_DOWN)) then Ship.InputPitchDown -= Step;
@@ -797,11 +821,12 @@ begin
   Ship.InputPitchDown += GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_Y);
   Ship.InputPitchDown := Clamp(Ship.InputPitchDown, -Step, Step);
 
+  // Управление креном
   Ship.InputRollRight := 0;
   if (IsKeyDown(KEY_Q)) then Ship.InputRollRight -= Step;
   if (IsKeyDown(KEY_E)) then Ship.InputRollRight += Step;
 
-  //Управление вращением мышью
+  // Управление мышью (если включено)
   if FMouseForFly then
   begin
     screenCenter := Vector2Create(GetScreenWidth/2, GetScreenHeight/2);
@@ -829,27 +854,29 @@ end;
 
 
 { TSpaceActor }
+// Установка 3D модели с автоматическим созданием коллайдера
 procedure TSpaceActor.SetModel(AValue: TR3D_Model);
 begin
   FModel := AValue;
-
+  // Создание коллайдера в зависимости от типа
   case FColliderType of
     ctBox:
-      begin
+      begin // Создание box коллайдера на основе AABB модели
         FCollider := CreateCollider(Vector3Scale(Self.FModel.aabb.min, FScale),
                                     Vector3Scale(Self.FModel.aabb.max, FScale));
 
       end;
     ctSphere:
-      begin
+      begin // Создание сферического коллайдера
         FCollider := CreateSphereCollider(FPosition, FSphereColliderSize);
       end;
   end;
-
+  // Установка вращения и позиции коллайдера
   SetColliderRotation(@FCollider, FVisualRotation);
   SetColliderTranslation(@FCollider, FPosition);
 end;
 
+// Установка позиции актора с обновлением коллайдера
 procedure TSpaceActor.SetPosition(AValue: TVector3);
 begin
   FPosition := AValue;
@@ -857,14 +884,17 @@ begin
   SetColliderTranslation(@self.FCollider, FPosition);
 end;
 
+// Установка масштаба с обновлением коллайдера
 procedure TSpaceActor.SetScale(AValue: Single);
 begin
   if FScale = AValue then Exit;
   FScale := AValue;
+  // Пересоздание коллайдера при изменении масштаба
   FCollider := CreateCollider(Vector3Scale(FModel.aabb.min, FScale),
                               Vector3Scale(FModel.aabb.max, FScale));
 end;
 
+// Создание актора с привязкой к движку
 constructor TSpaceActor.Create(const AParent: TSpaceEngine);
 begin
   FEngine := AParent;
@@ -872,62 +902,71 @@ begin
   FVisible := True;
   FTag := 0;
   FScale := 1;
-
+  // Инициализация позиции, скорости и вращения
   FPosition := Vector3Zero();
   FVelocity := Vector3Zero();
   FRotation := QuaternionIdentity();
   FScale := 1;
-
+  // Настройки управления по умолчанию
   FThrottleResponse := 10;
   TurnRate := 180;
   TurnResponse := 10;
   FMaxSpeed := 20.0;
-  FCurrentSpeed := 0.0;    // Начинаем с нулевой скорости
+  FCurrentSpeed := 0.0;
   FLastCollisionTime := 0.0;
   FAlignToHorizon := True;
 
+  // Добавление актора в движок
   Engine.Add(Self);
 end;
 
+// Уничтожение актора
 destructor TSpaceActor.Destroy;
 begin
   Engine.Remove(Self);
   Engine.FDeadActorList.Remove(Self);
 
-  // Unload model if assigned
+  // Выгрузка модели, если она была загружена
   if @FModel <> nil then
   R3D_UnloadModel(@FModel, True);
 
   inherited Destroy;
 end;
 
+// Обработка столкновения с другим актором
 procedure TSpaceActor.Collision(const Other: TSpaceActor);
 var
   Correction, CollisionNormal, RelativeVelocity: TVector3;
-  ImpactForce, {%H-}SpeedBeforeCollision: Single;
+  ImpactForce{, SpeedBeforeCollision}: Single;
 const
-  Elasticity = 0.3;
-  MinImpactForce = 0.1;
-  SpeedReductionFactor = 1.7;
+  Elasticity = 0.3;       // Коэффициент упругости
+  MinImpactForce = 0.1;   // Минимальная сила удара
+  SpeedReductionFactor = 1.7; // Фактор снижения скорости при столкновении
 begin
+  // Обновление позиции и вращения коллайдера
   SetColliderRotation(@FCollider, FVisualRotation);
   SetColliderTranslation(@FCollider, FPosition);
 
+  // Проверка столкновения коллайдеров
   if TestColliderPair(@FCollider, @Other.FCollider) then
   begin
+    // Получение корректировки позиции
     Correction := GetCollisionCorrection(@FCollider, @Other.FCollider);
     CollisionNormal := Vector3Normalize(Correction);
-    SpeedBeforeCollision := Vector3Length(FVelocity);
+   // SpeedBeforeCollision := Vector3Length(FVelocity);
+
+    // Расчет относительной скорости
     RelativeVelocity := Vector3Subtract(FVelocity, Other.FVelocity);
     ImpactForce := Vector3DotProduct(RelativeVelocity, CollisionNormal);
 
-    // Применяем коррекцию позиции
+    // Применение корректировки позиции
     FPosition := Vector3Add(FPosition, Correction);
     SetColliderTranslation(@FCollider, FPosition);
 
+    // Обработка удара
     if ImpactForce > MinImpactForce then
     begin
-      // Уменьшаем текущую скорость в зависимости от силы удара
+      // Уменьшение скорости при ударе
       FCurrentSpeed := FCurrentSpeed * (1.0 - Min(ImpactForce/MaxSpeed, SpeedReductionFactor));
 
       // Эффект отскока
@@ -935,11 +974,13 @@ begin
         Vector3Scale(CollisionNormal, ImpactForce * Elasticity));
     end;
 
+    // Вызов событий столкновения
     OnCollision(Other);
     Other.OnCollision(Self);
   end;
 end;
 
+// Проверка столкновений со всеми акторами
 procedure TSpaceActor.Collision;
 var i: Integer;
 begin
@@ -949,6 +990,7 @@ begin
   end;
 end;
 
+// Помечает актор как уничтоженный
 procedure TSpaceActor.Dead;
 begin
   if not FIsDead then
@@ -958,9 +1000,10 @@ begin
   end;
 end;
 
+// Событие при столкновении (может быть переопределено в потомках)
 procedure TSpaceActor.OnCollision(const Actor: TSpaceActor);
 begin
-  // Implementation remains the same
+  // Базовая реализация не делает ничего
 end;
 
 procedure TSpaceActor.Update(const DeltaTime: Single);
@@ -968,11 +1011,10 @@ var
   forwardSpeedMultipilier, autoSteerInput, targetVisualBank: single;
   targetVelocity: TVector3;
   transform: TMatrix;
-  i: integer;
   targetSpeed: Single;
   acceleration: Single;
 begin
-  // 1. Сначала обновляем текущую скорость на основе ввода
+  // Сначала обновляем текущую скорость на основе ввода
   targetSpeed := FMaxSpeed * Abs(InputForward); // Целевая скорость зависит от ввода
   acceleration := FThrottleResponse * DeltaTime; // Скорость изменения скорости
 
@@ -992,7 +1034,7 @@ begin
     FCurrentSpeed := SmoothDamp(FCurrentSpeed, 0, 5.0, DeltaTime);
   end;
 
-  // 2. Теперь рассчитываем движение с учетом текущей скорости
+  //Теперь рассчитываем движение с учетом текущей скорости
   forwardSpeedMultipilier := ifthen(FCurrentSpeed > 0.0, 1.0, 0.33);
 
   // Плавность управления (оставляем без изменений)
@@ -1019,121 +1061,138 @@ begin
 
   // Обновляем скорость с учетом инерции
   FVelocity := SmoothDamp(FVelocity, targetVelocity, 2.5, DeltaTime);
-
   // Обновляем позицию
   FPosition := Vector3Add(FPosition, Vector3Scale(FVelocity, DeltaTime));
-
-  // Остальная часть метода остается без изменений
+  // Обработка вращения
   FSmoothPitchDown := SmoothDamp(FSmoothPitchDown, InputPitchDown, TurnResponse, DeltaTime);
   FSmoothRollRight := SmoothDamp(FSmoothRollRight, InputRollRight, TurnResponse, DeltaTime);
   FSmoothYawLeft := SmoothDamp(FSmoothYawLeft, InputYawLeft, TurnResponse, DeltaTime);
-
+  // Применение вращения
   RotateLocalEuler(Vector3Create(0, 0, 1), FSmoothRollRight * TurnRate * DeltaTime);
   RotateLocalEuler(Vector3Create(1, 0, 0), FSmoothPitchDown * TurnRate * DeltaTime);
   RotateLocalEuler(Vector3Create(0, 1, 0), FSmoothYawLeft * TurnRate * DeltaTime);
-
+  // Автоматическое выравнивание к горизонту
   if (FAlignToHorizon) and (abs(GetForward().y) < 0.8) then
   begin
     autoSteerInput := GetRight().y;
     RotateLocalEuler(Vector3Create(0, 0, 1), autoSteerInput * TurnRate * 0.5 * DeltaTime);
   end;
-
+  // Визуальный крен при поворотах
   targetVisualBank := (-30 * DEG2RAD * FSmoothYawLeft) + (-15 * DEG2RAD * FSmoothLeft);
   FVisualBank := SmoothDamp(FVisualBank, targetVisualBank, 10, DeltaTime);
   FVisualRotation := QuaternionMultiply(FRotation, QuaternionFromAxisAngle(Vector3Create(0, 0, 1), FVisualBank));
-
+  // Обновление матрицы трансформации модели
   transform := MatrixTranslate(FPosition.x, FPosition.y, FPosition.z);
   transform := MatrixMultiply(QuaternionToMatrix(FVisualRotation), transform);
   transform := MatrixMultiply(MatrixScale(Scale, Scale, Scale), transform);
   FModelTransform := transform;
-
+  // Обновление коллайдера
   SetColliderRotation(@self.FCollider, FvisualRotation);
   SetColliderTranslation(@self.FCollider, Self.FPosition);
 
   FModelTransform := MatrixMultiply(MatrixScale(FScale,FScale,FScale),GetColliderTransform(@FCollider));
-
+  // Обновление луча (для проверки пересечений)
   FRay.direction := GetForward;
   FRay.position := Position;
+  // Визуальные эффекты двигателя
+  ActorModel.materials[1].emission.color := GREEN;
+  ActorModel.materials[1].emission.energy := Clamp(Abs(FCurrentSpeed)/MaxSpeed * 300.0, 30.0, 300.0);
+  ActorModel.materials[1].albedo.color := BLACK;
 end;
 
-
+// Отрисовка актора
 procedure TSpaceActor.Render;
 begin
   if not FVisible then Exit;
-  // Draw model using R3D
+  // Отрисовка модели с использованием R3D
   R3D_DrawModelPro(@FModel, FModelTransform);
 end;
 
+// Получение вектора "вперед"
 function TSpaceActor.GetForward: TVector3;
 begin
   result := Vector3RotateByQuaternion(Vector3Create(0,0,1), FRotation);
 end;
 
+// Получение вектора "вперед" с заданной дистанцией
 function TSpaceActor.GetForward(Distance: Single): TVector3;
 begin
   result := Vector3RotateByQuaternion(Vector3Create(0,0,Distance), FRotation);
 end;
 
+// Получение вектора "назад"
 function TSpaceActor.GetBack: TVector3;
 begin
   result := Vector3RotateByQuaternion(Vector3Create(0,0,-1), FRotation);
 end;
 
+// Получение вектора "назад" с заданной дистанцией
 function TSpaceActor.GetBack(Distance: Single): TVector3;
 begin
   result := Vector3RotateByQuaternion(Vector3Create(0,0,-Distance), FRotation);
 end;
 
+// Получение вектора "вправо"
 function TSpaceActor.GetRight: TVector3;
 begin
   result := Vector3RotateByQuaternion(Vector3Create(-1,0,0), FRotation);
 end;
 
+// Получение вектора "вправо" с заданной дистанцией
 function TSpaceActor.GetRight(Distance: Single): TVector3;
 begin
   result := Vector3RotateByQuaternion(Vector3Create(-Distance,0,0), FRotation);
 end;
 
+// Получение вектора "влево"
 function TSpaceActor.GetLeft: TVector3;
 begin
   result := Vector3RotateByQuaternion(Vector3Create(1,0,0), FRotation);
 end;
 
+// Получение вектора "влево" с заданной дистанцией
 function TSpaceActor.GetLeft(Distance: Single): TVector3;
 begin
   result := Vector3RotateByQuaternion(Vector3Create(Distance,0,0), FRotation);
 end;
 
+// Получение вектора "вверх"
 function TSpaceActor.GetUp: TVector3;
 begin
   result := Vector3RotateByQuaternion(Vector3Create(0,1,0), FRotation);
 end;
 
+// Получение вектора "вверх" с заданной дистанцией
 function TSpaceActor.GetUp(Distance: Single): TVector3;
 begin
   result := Vector3RotateByQuaternion(Vector3Create(0,Distance,0), FRotation);
 end;
 
+// Получение вектора "вниз"
 function TSpaceActor.GetDown: TVector3;
 begin
   result := Vector3RotateByQuaternion(Vector3Create(0,-1,0), FRotation);
 end;
 
+// Получение вектора "вниз" с заданной дистанцией
 function TSpaceActor.GetDown(Distance: Single): TVector3;
 begin
   result:= Vector3RotateByQuaternion(Vector3Create(0,-Distance,0), FRotation);
 end;
 
+// Получение вектора скорости
 function TSpaceActor.GetVelocity: TVector3;
 begin
     Result := FVelocity; // Возвращает вектор скорости (x, y, z)
 end;
 
+// Получение текущей скорости (длина вектора скорости)
 function TSpaceActor.GetSpeed: Single;
 begin
     Result := Vector3Length(FVelocity); // Возвращает длину вектора скорости
 end;
 
+// Преобразование точки из локальных координат в мировые
 function TSpaceActor.TransformPoint(point: TVector3): TVector3;
 var mPos, mRot, matrix: TMatrix;
 begin
@@ -1143,6 +1202,7 @@ begin
   result:= Vector3Transform(point, matrix);
 end;
 
+// Вращение вокруг локальной оси на заданный угол
 procedure TSpaceActor.RotateLocalEuler(axis: TVector3; degrees: single);
 var radians: single;
 begin
@@ -1150,6 +1210,7 @@ begin
   FRotation:= QuaternionMultiply(FRotation, QuaternionFromAxisAngle(axis, radians));
 end;
 
+// Поворот к другому актору
 procedure TSpaceActor.RotationToActor(targetActor: TSpaceActor;
   z_axis: boolean; deflection: Single);
 var
@@ -1159,7 +1220,7 @@ var
 begin
   dis := Vector3Subtract(FPosition, targetActor.Position);
   direction := Vector3Normalize(dis);
-  if z_axis then // Get look at and rotation.
+  if z_axis then // Получение матрицы взгляда с учетом Z-оси
   matrix := MatrixLookAt(Vector3Zero, direction, Vector3Create(0,1,1))
   else
   matrix := MatrixLookAt(Vector3Zero, direction, Vector3Create(0,1,0));
@@ -1167,6 +1228,7 @@ begin
   FRotation := QuaternionSlerp(FRotation, rotation_, GetFrameTime * deflection * RAD2DEG);
 end;
 
+// Поворот к заданному вектору
 procedure TSpaceActor.RotationToVector(target: TVector3; z_axis: boolean; deflection: Single);
 var
   matrix: TMatrix;
@@ -1175,7 +1237,7 @@ var
 begin
   dis := Vector3Subtract(FPosition, target);
   direction := Vector3Normalize(dis);
-  if z_axis then // Get look at and rotation.
+  if z_axis then // Получение матрицы взгляда с учетом Z-оси
   matrix := MatrixLookAt(Vector3Zero, direction, Vector3Create(0,1,1))
   else
   matrix := MatrixLookAt(Vector3Zero, direction, Vector3Create(0,1,0));
@@ -1184,7 +1246,7 @@ begin
 end;
 
 { TRadar }
-
+// Создание радара с привязкой к движку
 constructor TRadar.Create(AEngine: TSpaceEngine);
 begin
   FEngine := AEngine;
@@ -1270,7 +1332,6 @@ begin
 
 end;
 
-
 // Измененная функция для получения цвета по типу корабля
 function TRadar.GetObjectColor(ShipType: TShipType): TColorB;
 begin
@@ -1288,23 +1349,22 @@ begin
   end;
 end;
 
-
-
+// Получение вектора "вперед" камеры
 function GetCameraForward(camera: TCamera3D): TVector3;
 begin
   Result := Vector3Normalize(Vector3Subtract(camera.target, camera.position));
 end;
-
+ // Получение вектора "вправо" камеры
 function GetCameraRight(camera: TCamera3D): TVector3;
 begin
   Result := Vector3Normalize(Vector3CrossProduct(GetCameraForward(camera), camera.up));
 end;
-
+ // Получение вектора "вверх" камеры
 function GetCameraUp(camera: TCamera3D): TVector3;
 begin
   Result := camera.up;
 end;
-
+// Отрисовка маркеров объектов в мире
 procedure TRadar.DrawWorldMarkers(Camera: TSpaceCamera; modelPos: TVector3; distance: Single; color: TColorB);
 var
   screenPos, edgePos: TVector2;
@@ -1494,9 +1554,6 @@ begin
     end;
   end;
 end;
-
-
-
 
 end.
 
