@@ -36,10 +36,10 @@ constructor TRayApplication.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
 
-  InitWindow({GetScreenWidth, GetScreenHeight, }1024,768, AppTitle); // for window settings, look at example - window flags
-  R3D_Init(1024,768, 0 {or R3D_FLAG_TRANSPARENT_SORTING});
- // SetTargetFPS(60); // Set our game to run at 60 frames-per-second
-   //SetWindowState({FLAG_MSAA_4X_HINT or FLAG_FULLSCREEN_MODE or});
+  InitWindow(GetScreenWidth, GetScreenHeight, AppTitle); // for window settings, look at example - window flags
+  R3D_Init(GetScreenWidth,GetScreenHeight, 0 );
+  SetTargetFPS(60); // Set our game to run at 60 frames-per-second
+  SetWindowState(FLAG_MSAA_4X_HINT or FLAG_FULLSCREEN_MODE or FLAG_VSYNC_HINT);
     // Configure rendering effects
     R3D_SetBackgroundColor(BLACK);
     R3D_SetAmbientColor(DARKGRAY);
