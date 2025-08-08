@@ -1,0 +1,45 @@
+
+temp/*.o
+temp/*.ppu
+temp/*.a
+temp/*.compiled
+temp/
+
+binary/*
+!binary/
+
+!libs/x86_64-linux/
+!libs/x86_64-windows/
+!libs/x86_32-windows/
+!libs/x86_32-linux/
+
+
+# other git repo
+build/raylib-gizmo/
+build/raylib/
+build/raygui/
+build/r3d/
+build/assimp/
+build/raylib-media/
+
+# macos
+.DS_Store
+#*.dylib
+
+# other git repo
+raylib-gizmo/
+raylib/
+raygui/
+r3d/
+
+# laz
+backup/
+
+
+#examples/
+lib/
+templates/standard_game/
+*.lps
+
+# GNU+Linux
+# *.so

@@ -105,13 +105,15 @@ constructor TAiShip.Create(const AParent: TSpaceEngine);
 begin
   inherited Create(AParent);
   R3D_SetModelImportScale(0.05);
-  ShipModel := R3D_LoadModel(('data' + '/models/Transport.glb'));
+
+
+  ShipModel := R3D_LoadModel(('data' + '/models/ship.glb'));
 
   ColliderType:= ctBox;
   ActorModel := ShipModel;
   DoCollision := True;
   AlignToHorizon:=False;
-  MaxSpeed:=2;
+  ///MaxSpeed:=2;
   ShipType := Pirate;
 end;
 
@@ -297,6 +299,8 @@ begin
   R3D_LightLookAt(Engine.Light[0], Vector3Create( 0, 10, 5 ), Vector3Create(0,0,0));
   R3D_SetLightActive(Engine.Light[0], true);
   R3D_EnableShadow(Engine.Light[0], 4096);
+
+  var a: integer;
 
   Camera := TSpaceCamera.Create(True, 50);
 

@@ -76,7 +76,10 @@
       </Debugging>
     </Linking>
     <Other>
-      <CustomOptions Value="-k&quot;-rpath=$ORIGIN&quot;"/>
+      <CustomOptions Value="{$IFDEF Linux}
+-k&quot;-rpath=./libs_lin64&quot;  
+-k-lassimp
+{$ENDIF}"/>
     </Other>
   </CompilerOptions>
   <Debugging>
